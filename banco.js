@@ -1,19 +1,18 @@
-// Importação dos módulos do Firebase
-import { initializeApp } from "firebase/app";
+// Importação direta via CDN do Google para funcionamento sem necessidade de Node.js/Build tools
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { 
     getFirestore, 
     collection, 
     addDoc, 
     getDocs, 
     updateDoc, 
-    deleteDoc, 
     doc, 
     query, 
     orderBy,
     serverTimestamp 
-} from "firebase/firestore";
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// Configuração do Firebase
+// Configuração do Firebase mantida conforme seu projeto
 const firebaseConfig = {
     apiKey: "AIzaSyAD9Ffs9CQ4jWIl8P3mOKEYq8V5jzwMfXQ",
     authDomain: "sasgp-sistemainovacao-v1.firebaseapp.com",
@@ -24,19 +23,20 @@ const firebaseConfig = {
     measurementId: "G-5NLX08FH2R"
 };
 
-// Inicializar Firebase
+// Inicialização do Firebase e Firestore
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// GERADOR DE ID ÚNICO
+// Função para gerar ID único localmente
 function generateId() {
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
 
-// FUNÇÕES PARA SOLUÇÕES
+// --- FUNÇÕES DE PERSISTÊNCIA ---
+
 export async function adicionarSolucao(dados) {
     try {
-        const id = generateId();
+        const id = generateId(); //
         const dadosCompletos = {
             id: id,
             ...dados,
@@ -44,7 +44,7 @@ export async function adicionarSolucao(dados) {
             dataAtualizacao: serverTimestamp()
         };
         
-        const docRef = await addDoc(collection(db, "ResumoSolucao"), dadosCompletos);
+        const docRef = await addDoc(collection(db, "ResumoSolucao"), dadosCompletos); //
         return { success: true, id: id, docId: docRef.id };
     } catch (error) {
         console.error("Erro ao adicionar solução:", error);
@@ -54,7 +54,7 @@ export async function adicionarSolucao(dados) {
 
 export async function listarSolucoes() {
     try {
-        const q = query(collection(db, "ResumoSolucao"), orderBy("dataCriacao", "desc"));
+        const q = query(collection(db, "ResumoSolucao"), orderBy("dataCriacao", "desc")); //
         const querySnapshot = await getDocs(q);
         const solucoes = [];
         
@@ -71,7 +71,7 @@ export async function listarSolucoes() {
 
 export async function atualizarSolucao(id, dados) {
     try {
-        const docRef = doc(db, "ResumoSolucao", id);
+        const docRef = doc(db, "ResumoSolucao", id); //
         await updateDoc(docRef, {
             ...dados,
             dataAtualizacao: serverTimestamp()
@@ -83,7 +83,6 @@ export async function atualizarSolucao(id, dados) {
     }
 }
 
-// FUNÇÕES PARA FORMULÁRIO
 export async function salvarRespostasFormulario(idSolucao, respostas) {
     try {
         const dados = {
@@ -92,7 +91,7 @@ export async function salvarRespostasFormulario(idSolucao, respostas) {
             dataRegistro: serverTimestamp()
         };
         
-        const docRef = await addDoc(collection(db, "RespostasFormulario"), dados);
+        const docRef = await addDoc(collection(db, "RespostasFormulario"), dados); //
         return { success: true, id: docRef.id };
     } catch (error) {
         console.error("Erro ao salvar respostas:", error);
@@ -100,7 +99,6 @@ export async function salvarRespostasFormulario(idSolucao, respostas) {
     }
 }
 
-// FUNÇÕES PARA RECURSOS
 export async function salvarRecursos(idSolucao, recursos) {
     try {
         const dados = {
@@ -109,7 +107,7 @@ export async function salvarRecursos(idSolucao, recursos) {
             dataRegistro: serverTimestamp()
         };
         
-        const docRef = await addDoc(collection(db, "RecursosSolucao"), dados);
+        const docRef = await addDoc(collection(db, "RecursosSolucao"), dados); //
         return { success: true, id: docRef.id };
     } catch (error) {
         console.error("Erro ao salvar recursos:", error);
@@ -117,7 +115,6 @@ export async function salvarRecursos(idSolucao, recursos) {
     }
 }
 
-// FUNÇÕES PARA PONTUAÇÃO
 export async function salvarPontuacao(idSolucao, killSwitch, matrizPositiva, matrizNegativa, score) {
     try {
         const dados = {
@@ -129,7 +126,7 @@ export async function salvarPontuacao(idSolucao, killSwitch, matrizPositiva, mat
             dataRegistro: serverTimestamp()
         };
         
-        const docRef = await addDoc(collection(db, "PontuacaoSolucao"), dados);
+        const docRef = await addDoc(collection(db, "PontuacaoSolucao"), dados); //
         return { success: true, id: docRef.id };
     } catch (error) {
         console.error("Erro ao salvar pontuação:", error);
@@ -137,7 +134,6 @@ export async function salvarPontuacao(idSolucao, killSwitch, matrizPositiva, mat
     }
 }
 
-// FUNÇÕES PARA CANVAS
 export async function salvarCanvas(idSolucao, canvasData) {
     try {
         const dados = {
@@ -146,7 +142,7 @@ export async function salvarCanvas(idSolucao, canvasData) {
             dataRegistro: serverTimestamp()
         };
         
-        const docRef = await addDoc(collection(db, "CanvasSolucao"), dados);
+        const docRef = await addDoc(collection(db, "CanvasSolucao"), dados); //
         return { success: true, id: docRef.id };
     } catch (error) {
         console.error("Erro ao salvar canvas:", error);
@@ -156,10 +152,7 @@ export async function salvarCanvas(idSolucao, canvasData) {
 
 export async function buscarCanvas(idSolucao) {
     try {
-        const q = query(
-            collection(db, "CanvasSolucao"),
-            orderBy("dataRegistro", "desc")
-        );
+        const q = query(collection(db, "CanvasSolucao"), orderBy("dataRegistro", "desc")); //
         const querySnapshot = await getDocs(q);
         
         for (const doc of querySnapshot.docs) {
@@ -176,7 +169,7 @@ export async function buscarCanvas(idSolucao) {
     }
 }
 
-// EXPORTAR FUNÇÕES PRINCIPAIS
+// Exportação das instâncias e do objeto padrão
 export { db };
 export default {
     adicionarSolucao,
