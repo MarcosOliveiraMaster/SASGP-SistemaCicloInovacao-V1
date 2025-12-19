@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapeamento de Recursos - SASGP</title>
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <div class="container">
+        <div class="form-container">
+            <h2 class="form-title">Mapeamento de Recursos da Solução</h2>
+            <p class="form-description">Descreva os recursos que serão exigidos para a solução.</p>
+            
+            <div class="table-container">
+                <table class="resources-table" id="resourcesTable">
+                    <thead>
+                        <tr>
+                            <th width="25%">Tipo do Recurso</th>
+                            <th width="45%">Descrição</th>
+                            <th width="20%">Valor</th>
+                            <th width="10%">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Linhas serão adicionadas dinamicamente -->
+                    </tbody>
+                </table>
+                
+                <button class="add-row-btn" id="addRowBtn">+</button>
+            </div>
+            
+            <div class="btn-container">
+                <button class="btn btn-secondary btn-voltar">
+                    ← Voltar
+                </button>
+                <button class="btn btn-primary btn-avancar">
+                    Avançar →
+                </button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
