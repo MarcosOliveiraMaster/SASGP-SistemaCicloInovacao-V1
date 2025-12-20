@@ -1,50 +1,36 @@
-// Importação direta via CDN do Google para funcionamento sem necessidade de Node.js/Build tools
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { 
-    getFirestore, 
-    collection, 
-    addDoc, 
-    getDocs, 
-    updateDoc, 
-    doc, 
-    query, 
-    orderBy,
-    serverTimestamp 
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+// Banco de dados adaptado para GitHub Pages
 
-// Configuração do Firebase mantida conforme seu projeto
-const firebaseConfig = {
-    apiKey: "AIzaSyAD9Ffs9CQ4jWIl8P3mOKEYq8V5jzwMfXQ",
-    authDomain: "sasgp-sistemainovacao-v1.firebaseapp.com",
-    projectId: "sasgp-sistemainovacao-v1",
-    storageBucket: "sasgp-sistemainovacao-v1.firebasestorage.app",
-    messagingSenderId: "593160846088",
-    appId: "1:593160846088:web:396c3dba0c473d68d7cabd",
-    measurementId: "G-5NLX08FH2R"
-};
-
-// Inicialização do Firebase e Firestore
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-// Função para gerar ID único localmente
+// Função para gerar ID único
 function generateId() {
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
 
+// Verifica se Firebase está inicializado
+function verificarFirebase() {
+    if (!window.db) {
+        console.error("Firebase não está inicializado!");
+        return false;
+    }
+    return true;
+}
+
 // --- FUNÇÕES DE PERSISTÊNCIA ---
 
-export async function adicionarSolucao(dados) {
+async function adicionarSolucao(dados) {
+    if (!verificarFirebase()) {
+        return { success: false, error: "Firebase não inicializado" };
+    }
+    
     try {
-        const id = generateId(); //
+        const id = generateId();
         const dadosCompletos = {
             id: id,
             ...dados,
-            dataCriacao: serverTimestamp(),
-            dataAtualizacao: serverTimestamp()
+            dataCriacao: firebase.firestore.FieldValue.serverTimestamp(),
+            dataAtualizacao: firebase.firestore.FieldValue.serverTimestamp()
         };
         
-        const docRef = await addDoc(collection(db, "ResumoSolucao"), dadosCompletos); //
+        const docRef = await window.db.collection("ResumoSolucao").add(dadosCompletos);
         return { success: true, id: id, docId: docRef.id };
     } catch (error) {
         console.error("Erro ao adicionar solução:", error);
@@ -52,14 +38,24 @@ export async function adicionarSolucao(dados) {
     }
 }
 
-export async function listarSolucoes() {
+async function listarSolucoes() {
+    if (!verificarFirebase()) {
+        return { success: false, error: "Firebase não inicializado" };
+    }
+    
     try {
-        const q = query(collection(db, "ResumoSolucao"), orderBy("dataCriacao", "desc")); //
-        const querySnapshot = await getDocs(q);
-        const solucoes = [];
+        const querySnapshot = await window.db.collection("ResumoSolucao")
+            .orderBy("dataCriacao", "desc")
+            .get();
         
+        const solucoes = [];
         querySnapshot.forEach((doc) => {
-            solucoes.push({ id: doc.id, ...doc.data() });
+            solucoes.push({ 
+                id: doc.id, 
+                ...doc.data(),
+                // Garante que a data seja um objeto Date válido
+                dataCriacao: doc.data().dataCriacao ? doc.data().dataCriacao.toDate() : new Date()
+            });
         });
         
         return { success: true, data: solucoes };
@@ -69,12 +65,16 @@ export async function listarSolucoes() {
     }
 }
 
-export async function atualizarSolucao(id, dados) {
+async function atualizarSolucao(id, dados) {
+    if (!verificarFirebase()) {
+        return { success: false, error: "Firebase não inicializado" };
+    }
+    
     try {
-        const docRef = doc(db, "ResumoSolucao", id); //
-        await updateDoc(docRef, {
+        const docRef = window.db.collection("ResumoSolucao").doc(id);
+        await docRef.update({
             ...dados,
-            dataAtualizacao: serverTimestamp()
+            dataAtualizacao: firebase.firestore.FieldValue.serverTimestamp()
         });
         return { success: true };
     } catch (error) {
@@ -83,15 +83,19 @@ export async function atualizarSolucao(id, dados) {
     }
 }
 
-export async function salvarRespostasFormulario(idSolucao, respostas) {
+async function salvarRespostasFormulario(idSolucao, respostas) {
+    if (!verificarFirebase()) {
+        return { success: false, error: "Firebase não inicializado" };
+    }
+    
     try {
         const dados = {
             idSolucao: idSolucao,
             respostas: respostas,
-            dataRegistro: serverTimestamp()
+            dataRegistro: firebase.firestore.FieldValue.serverTimestamp()
         };
         
-        const docRef = await addDoc(collection(db, "RespostasFormulario"), dados); //
+        const docRef = await window.db.collection("RespostasFormulario").add(dados);
         return { success: true, id: docRef.id };
     } catch (error) {
         console.error("Erro ao salvar respostas:", error);
@@ -99,15 +103,19 @@ export async function salvarRespostasFormulario(idSolucao, respostas) {
     }
 }
 
-export async function salvarRecursos(idSolucao, recursos) {
+async function salvarRecursos(idSolucao, recursos) {
+    if (!verificarFirebase()) {
+        return { success: false, error: "Firebase não inicializado" };
+    }
+    
     try {
         const dados = {
             idSolucao: idSolucao,
             recursos: recursos,
-            dataRegistro: serverTimestamp()
+            dataRegistro: firebase.firestore.FieldValue.serverTimestamp()
         };
         
-        const docRef = await addDoc(collection(db, "RecursosSolucao"), dados); //
+        const docRef = await window.db.collection("RecursosSolucao").add(dados);
         return { success: true, id: docRef.id };
     } catch (error) {
         console.error("Erro ao salvar recursos:", error);
@@ -115,7 +123,11 @@ export async function salvarRecursos(idSolucao, recursos) {
     }
 }
 
-export async function salvarPontuacao(idSolucao, killSwitch, matrizPositiva, matrizNegativa, score) {
+async function salvarPontuacao(idSolucao, killSwitch, matrizPositiva, matrizNegativa, score) {
+    if (!verificarFirebase()) {
+        return { success: false, error: "Firebase não inicializado" };
+    }
+    
     try {
         const dados = {
             idSolucao: idSolucao,
@@ -123,10 +135,10 @@ export async function salvarPontuacao(idSolucao, killSwitch, matrizPositiva, mat
             matrizPositiva: matrizPositiva,
             matrizNegativa: matrizNegativa,
             score: score,
-            dataRegistro: serverTimestamp()
+            dataRegistro: firebase.firestore.FieldValue.serverTimestamp()
         };
         
-        const docRef = await addDoc(collection(db, "PontuacaoSolucao"), dados); //
+        const docRef = await window.db.collection("PontuacaoSolucao").add(dados);
         return { success: true, id: docRef.id };
     } catch (error) {
         console.error("Erro ao salvar pontuação:", error);
@@ -134,15 +146,19 @@ export async function salvarPontuacao(idSolucao, killSwitch, matrizPositiva, mat
     }
 }
 
-export async function salvarCanvas(idSolucao, canvasData) {
+async function salvarCanvas(idSolucao, canvasData) {
+    if (!verificarFirebase()) {
+        return { success: false, error: "Firebase não inicializado" };
+    }
+    
     try {
         const dados = {
             idSolucao: idSolucao,
             ...canvasData,
-            dataRegistro: serverTimestamp()
+            dataRegistro: firebase.firestore.FieldValue.serverTimestamp()
         };
         
-        const docRef = await addDoc(collection(db, "CanvasSolucao"), dados); //
+        const docRef = await window.db.collection("CanvasSolucao").add(dados);
         return { success: true, id: docRef.id };
     } catch (error) {
         console.error("Erro ao salvar canvas:", error);
@@ -150,16 +166,21 @@ export async function salvarCanvas(idSolucao, canvasData) {
     }
 }
 
-export async function buscarCanvas(idSolucao) {
+async function buscarCanvas(idSolucao) {
+    if (!verificarFirebase()) {
+        return { success: false, error: "Firebase não inicializado" };
+    }
+    
     try {
-        const q = query(collection(db, "CanvasSolucao"), orderBy("dataRegistro", "desc")); //
-        const querySnapshot = await getDocs(q);
+        const querySnapshot = await window.db.collection("CanvasSolucao")
+            .where("idSolucao", "==", idSolucao)
+            .orderBy("dataRegistro", "desc")
+            .limit(1)
+            .get();
         
-        for (const doc of querySnapshot.docs) {
-            const data = doc.data();
-            if (data.idSolucao === idSolucao) {
-                return { success: true, data: { id: doc.id, ...data } };
-            }
+        if (!querySnapshot.empty) {
+            const doc = querySnapshot.docs[0];
+            return { success: true, data: { id: doc.id, ...doc.data() } };
         }
         
         return { success: true, data: null };
@@ -169,9 +190,8 @@ export async function buscarCanvas(idSolucao) {
     }
 }
 
-// Exportação das instâncias e do objeto padrão
-export { db };
-export default {
+// Disponibiliza funções globalmente para acesso em outros arquivos
+window.banco = {
     adicionarSolucao,
     listarSolucoes,
     atualizarSolucao,
@@ -179,5 +199,6 @@ export default {
     salvarRecursos,
     salvarPontuacao,
     salvarCanvas,
-    buscarCanvas
+    buscarCanvas,
+    generateId
 };
