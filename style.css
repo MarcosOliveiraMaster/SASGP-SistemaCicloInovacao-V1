@@ -6,6 +6,7 @@
 }
 
 :root {
+    /* Paleta de cores principal */
     --cor-laranja: #FF6B35;
     --cor-laranja-claro: #FF8E53;
     --cor-azul: #4A90E2;
@@ -17,14 +18,17 @@
     --cinza-escuro: #343A40;
     --branco: #FFFFFF;
     --preto: #212529;
+    
+    /* Efeitos visuais */
     --sombra-suave: 0 4px 6px rgba(0, 0, 0, 0.1);
     --sombra-media: 0 8px 15px rgba(0, 0, 0, 0.15);
     --borda-arredondada: 15px;
     --transicao: all 0.3s ease;
 }
 
+/* Configuração global da fonte Comfortaa */
 body {
-    font-family: 'Comfortaa', cursive; /* Fonte padrão aplicada globalmente */
+    font-family: 'Comfortaa', cursive;
     background: linear-gradient(135deg, #f5f5f7 0%, #e8e8e8 100%);
     min-height: 100vh;
     color: var(--preto);
@@ -32,20 +36,21 @@ body {
     line-height: 1.6;
 }
 
+/* Container padrão */
 .container {
     max-width: 1400px;
     margin: 0 auto;
     padding: 20px;
 }
 
-/* Modificação específica para recursos.html (Container mais largo) */
+/* Container mais largo para recursos.html (80-90% da tela em desktop) */
 .container-wide {
-    max-width: 90%; /* 80-90% da tela em desktop */
+    max-width: 90%;
     margin: 0 auto;
     padding: 20px;
 }
 
-/* HEADER */
+/* HEADER - Cabeçalho da página */
 header {
     text-align: center;
     margin-bottom: 40px;
@@ -65,17 +70,32 @@ header h1 {
     font-weight: 500;
 }
 
-/* GRID DE SOLUÇÕES */
+/* GRID DE SOLUÇÕES - Layout responsivo */
 .grid-container {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(6, 1fr); /* 6 colunas no desktop */
     gap: 25px;
     margin-bottom: 50px;
 }
 
-@media (max-width: 1200px) { .grid-container { grid-template-columns: repeat(4, 1fr); } }
-@media (max-width: 768px) { .grid-container { grid-template-columns: repeat(3, 1fr); } }
-@media (max-width: 480px) { .grid-container { grid-template-columns: repeat(2, 1fr); } }
+/* Responsividade - ALTERE AQUI para ajustar colunas */
+@media (max-width: 1200px) {
+    .grid-container {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .grid-container {
+        grid-template-columns: repeat(3, 1fr); /* 3 por linha no mobile */
+    }
+}
+
+@media (max-width: 480px) {
+    .grid-container {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
 
 /* CARDS DE SOLUÇÃO */
 .solution-card {
@@ -103,9 +123,21 @@ header h1 {
     border-color: var(--cor-laranja);
 }
 
-.solution-card.laranja { background: linear-gradient(135deg, var(--cor-laranja), var(--cor-laranja-claro)); color: var(--branco); }
-.solution-card.azul { background: linear-gradient(135deg, var(--cor-azul), var(--cor-azul-claro)); color: var(--branco); }
-.solution-card.roxo { background: linear-gradient(135deg, var(--cor-roxo), var(--cor-roxo-claro)); color: var(--branco); }
+/* Cores dos cards */
+.solution-card.laranja {
+    background: linear-gradient(135deg, var(--cor-laranja), var(--cor-laranja-claro));
+    color: var(--branco);
+}
+
+.solution-card.azul {
+    background: linear-gradient(135deg, var(--cor-azul), var(--cor-azul-claro));
+    color: var(--branco);
+}
+
+.solution-card.roxo {
+    background: linear-gradient(135deg, var(--cor-roxo), var(--cor-roxo-claro));
+    color: var(--branco);
+}
 
 .card-image {
     width: 80px;
@@ -117,7 +149,7 @@ header h1 {
     justify-content: center;
     margin-bottom: 15px;
     overflow: hidden;
-    font-size: 2.5rem; /* Aumentado para emojis */
+    font-size: 2.5rem; /* Tamanho aumentado para emojis */
 }
 
 .card-title {
@@ -130,8 +162,9 @@ header h1 {
     white-space: nowrap;
 }
 
+/* Card de adicionar novo - ALTERE AQUI para ajustar borda pontilhada */
 .add-new-card {
-    border: 3px dashed var(--cor-laranja);
+    border: 3px dashed var(--cor-laranja); /* ALTERE este valor para ajustar espessura */
     background: transparent;
     color: var(--cor-laranja);
     display: flex;
@@ -148,7 +181,7 @@ header h1 {
     transform: scale(1.05);
 }
 
-/* MENU DE CONTEXTO (CLIQUE DIREITO) */
+/* MENU DE CONTEXTO (clique direito) */
 .context-menu {
     position: absolute;
     background-color: var(--branco);
@@ -193,7 +226,7 @@ footer {
     margin-top: 30px;
 }
 
-/* FORMULÁRIOS */
+/* FORMULÁRIOS - Estilos gerais */
 .form-container {
     max-width: 800px;
     margin: 0 auto;
@@ -208,16 +241,45 @@ footer {
     max-width: 100%;
 }
 
-.form-step { display: none; animation: fadeIn 0.5s ease; }
-.form-step.active { display: block; }
+/* Animações para transição entre steps */
+.form-step {
+    display: none;
+    animation: fadeIn 0.5s ease;
+}
 
-@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes fadeOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-20px); } }
+.form-step.active {
+    display: block;
+}
 
-.form-title { color: var(--cor-laranja); margin-bottom: 10px; font-size: 1.8rem; }
-.form-description { color: var(--cinza-escuro); margin-bottom: 30px; font-size: 1.1rem; }
-.form-group { margin-bottom: 25px; }
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
 
+@keyframes fadeOut {
+    from { opacity: 1; transform: translateY(0); }
+    to { opacity: 0; transform: translateY(-20px); }
+}
+
+/* Títulos e descrições do formulário */
+.form-title {
+    color: var(--cor-laranja);
+    margin-bottom: 10px;
+    font-size: 1.8rem;
+}
+
+.form-description {
+    color: var(--cinza-escuro);
+    margin-bottom: 30px;
+    font-size: 1.1rem;
+}
+
+/* Grupos de formulário */
+.form-group {
+    margin-bottom: 25px;
+}
+
+/* Labels dos formulários */
 label {
     display: block;
     margin-bottom: 8px;
@@ -225,7 +287,10 @@ label {
     color: var(--cinza-escuro);
 }
 
-input[type="text"], textarea, select {
+/* Campos de entrada */
+input[type="text"],
+textarea,
+select {
     width: 100%;
     padding: 15px;
     border: 2px solid var(--cinza-medio);
@@ -235,12 +300,18 @@ input[type="text"], textarea, select {
     transition: var(--transicao);
 }
 
-input[type="text"]:focus, textarea:focus, select:focus {
+input[type="text"]:focus,
+textarea:focus,
+select:focus {
     outline: none;
     border-color: var(--cor-laranja);
 }
 
-textarea { min-height: 120px; resize: vertical; max-height: 300px; }
+textarea {
+    min-height: 120px;
+    resize: vertical;
+    max-height: 300px;
+}
 
 /* BARRA DE PROGRESSO */
 .progress-container {
@@ -258,7 +329,7 @@ textarea { min-height: 120px; resize: vertical; max-height: 300px; }
     transition: width 0.5s ease;
 }
 
-/* OPÇÕES DE TIPO */
+/* OPÇÕES DE TIPO (Edital, Processo, etc.) */
 .options-container {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -266,7 +337,11 @@ textarea { min-height: 120px; resize: vertical; max-height: 300px; }
     margin: 30px 0;
 }
 
-@media (max-width: 600px) { .options-container { grid-template-columns: 1fr; } }
+@media (max-width: 600px) {
+    .options-container {
+        grid-template-columns: 1fr;
+    }
+}
 
 .option-card {
     padding: 30px 20px;
@@ -280,13 +355,14 @@ textarea { min-height: 120px; resize: vertical; max-height: 300px; }
     background: var(--branco);
 }
 
-.option-card:hover, .option-card.selected {
+.option-card:hover,
+.option-card.selected {
     background: linear-gradient(135deg, var(--cor-laranja), var(--cor-laranja-claro));
     color: var(--branco);
     transform: translateY(-3px);
 }
 
-/* BOTÕES (Sem setas) */
+/* BOTÕES - Sem setas, apenas texto */
 .btn-container {
     display: flex;
     justify-content: space-between;
@@ -309,15 +385,18 @@ textarea { min-height: 120px; resize: vertical; max-height: 300px; }
     gap: 10px;
 }
 
-/* Botão Cancelar (Branco com letras laranjas) */
+/* Botão Cancelar - Branco com letras laranjas */
 .btn-cancel {
     background: var(--branco);
     color: var(--cor-laranja);
     border: 2px solid var(--cor-laranja);
 }
 
-.btn-cancel:hover { background: var(--cinza-claro); }
+.btn-cancel:hover {
+    background: var(--cinza-claro);
+}
 
+/* Botão Primário - Laranja gradiente */
 .btn-primary {
     background: linear-gradient(135deg, var(--cor-laranja), var(--cor-laranja-claro));
     color: var(--branco);
@@ -328,12 +407,19 @@ textarea { min-height: 120px; resize: vertical; max-height: 300px; }
     box-shadow: 0 5px 15px rgba(255, 107, 53, 0.3);
 }
 
-.btn-secondary { background: var(--cinza-medio); color: var(--cinza-escuro); }
-.btn-secondary:hover { background: var(--cinza-escuro); color: var(--branco); }
+/* Botão Secundário - Cinza */
+.btn-secondary {
+    background: var(--cinza-medio);
+    color: var(--cinza-escuro);
+}
 
-/* TABELA DE RECURSOS */
+.btn-secondary:hover {
+    background: var(--cinza-escuro);
+    color: var(--branco);
+}
+
+/* TABELA DE RECURSOS - Largura aumentada */
 .table-container {
-    /* Largura aumentada controlada pelo container-wide */
     max-height: 500px;
     overflow-y: auto;
     border: 1px solid var(--cinza-medio);
@@ -341,7 +427,10 @@ textarea { min-height: 120px; resize: vertical; max-height: 300px; }
     padding: 10px;
 }
 
-.resources-table { width: 100%; border-collapse: collapse; }
+.resources-table {
+    width: 100%;
+    border-collapse: collapse;
+}
 
 .resources-table th {
     background: var(--cinza-claro);
@@ -359,9 +448,20 @@ textarea { min-height: 120px; resize: vertical; max-height: 300px; }
     text-align: center; /* Alinhamento horizontal */
 }
 
-.resources-table textarea { min-height: 60px; max-height: 120px; padding: 10px; text-align: center; }
-.resources-table select { padding: 10px; text-align: center; text-align-last: center; }
+.resources-table textarea {
+    min-height: 60px;
+    max-height: 120px;
+    padding: 10px;
+    text-align: center;
+}
 
+.resources-table select {
+    padding: 10px;
+    text-align: center;
+    text-align-last: center; /* Para centralizar no Firefox */
+}
+
+/* BOTÃO DE ADICIONAR LINHA (+ círculo) */
 .add-row-btn {
     width: 50px;
     height: 50px;
@@ -376,8 +476,12 @@ textarea { min-height: 120px; resize: vertical; max-height: 300px; }
     transition: var(--transicao);
 }
 
-.add-row-btn:hover { transform: scale(1.1); background: var(--cor-laranja-claro); }
+.add-row-btn:hover {
+    transform: scale(1.1);
+    background: var(--cor-laranja-claro);
+}
 
+/* ÍCONE DE LIXEIRA */
 .delete-btn {
     background: none;
     border: none;
@@ -386,23 +490,27 @@ textarea { min-height: 120px; resize: vertical; max-height: 300px; }
     font-size: 1.2rem;
     transition: var(--transicao);
     padding: 5px;
-    margin: 0 auto;
+    margin: 0 auto; /* Centralizado */
     display: block;
 }
 
-.delete-btn:hover { color: #ff4444; }
+.delete-btn:hover {
+    color: #ff4444;
+}
 
-/* KILL SWITCH ESTILIZADO */
+/* KILL SWITCH - Estilização personalizada */
 .kill-switch-section .form-group {
     background: var(--branco);
-    border: 1px solid var(--cinza-medio);
+    border: 1px solid var(--cinza-medio); /* Borda cinza clara */
     border-radius: var(--borda-arredondada);
     padding: 15px;
     margin-bottom: 15px;
     transition: var(--transicao);
 }
 
-.kill-switch-section .form-group:hover { border-color: var(--cor-laranja); }
+.kill-switch-section .form-group:hover {
+    border-color: var(--cor-laranja);
+}
 
 /* Checkbox personalizado (Maior e Laranja) */
 .kill-switch label {
@@ -416,7 +524,7 @@ textarea { min-height: 120px; resize: vertical; max-height: 300px; }
 .kill-switch input[type="checkbox"] {
     appearance: none;
     -webkit-appearance: none;
-    width: 25px;
+    width: 25px; /* Maior */
     height: 25px;
     border: 2px solid var(--cinza-medio);
     border-radius: 6px;
@@ -427,7 +535,7 @@ textarea { min-height: 120px; resize: vertical; max-height: 300px; }
 }
 
 .kill-switch input[type="checkbox"]:checked {
-    background-color: var(--cor-laranja);
+    background-color: var(--cor-laranja); /* Preenchimento laranja */
     border-color: var(--cor-laranja);
 }
 
@@ -464,9 +572,11 @@ input[type="range"]::-webkit-slider-thumb {
     transition: var(--transicao);
 }
 
-input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}
 
-/* Seção de Score */
+/* Seção de Score - Centralizada e estilizada */
 .score-section {
     text-align: center;
     padding: 30px;
@@ -500,7 +610,7 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 
 .score-bar {
     height: 100%;
-    background: linear-gradient(to right, #ff4444, #ffbb33, #00C851);
+    background: linear-gradient(to right, var(--cor-laranja), var(--cor-laranja-claro));
     width: 0%;
     transition: width 1s ease-out;
 }
@@ -544,7 +654,7 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
     margin-top: 25px;
 }
 
-/* Grid de Ícones no Popup */
+/* Grid de Ícones no Popup (4 colunas com scroll) */
 .icon-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -563,13 +673,14 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
     border: 2px solid transparent;
 }
 
-.icon-option:hover, .icon-option.selected {
+.icon-option:hover,
+.icon-option.selected {
     background-color: var(--cinza-claro);
     border-color: var(--cor-laranja);
     transform: scale(1.1);
 }
 
-/* CANVAS GRID */
+/* CANVAS GRID - 6 colunas */
 .canvas-grid {
     display: grid;
     grid-template-columns: repeat(6, 1fr);
@@ -613,7 +724,36 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 }
 
 /* Utilitários de Loading e Erro */
-.loading { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 200px; grid-column: 1 / -1; }
-.spinner { width: 40px; height: 40px; border: 4px solid var(--cinza-medio); border-top: 4px solid var(--cor-laranja); border-radius: 50%; animation: spin 1s linear infinite; }
-@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-.error { color: #ff4444; text-align: center; padding: 40px; font-weight: 500; grid-column: 1 / -1; background: rgba(255, 68, 68, 0.1); border-radius: var(--borda-arredondada); border: 2px solid #ff4444; }
+.loading {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 200px;
+    grid-column: 1 / -1;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--cinza-medio);
+    border-top: 4px solid var(--cor-laranja);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.error {
+    color: #ff4444;
+    text-align: center;
+    padding: 40px;
+    font-weight: 500;
+    grid-column: 1 / -1;
+    background: rgba(255, 68, 68, 0.1);
+    border-radius: var(--borda-arredondada);
+    border: 2px solid #ff4444;
+}

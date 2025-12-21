@@ -4,15 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Banco de Soluções - SASGP</title>
+    <!-- Fonte Comfortaa do Google -->
     <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Firebase SDK v9 em modo compatível -->
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+    <!-- Scripts da aplicação -->
     <script src="banco.js" defer></script>
     <script src="script.js" defer></script>
+    <!-- Folha de estilo principal -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- Container principal da página -->
     <div class="container">
         <header>
             <h1>Banco de Soluções Digitais</h1>
@@ -20,8 +25,10 @@
         </header>
         
         <main>
+            <!-- Grid de soluções - carregado dinamicamente -->
             <div class="grid-container" id="solutionsGrid">
-                </div>
+                <!-- Cards serão inseridos aqui via JavaScript -->
+            </div>
         </main>
         
         <footer>
@@ -29,6 +36,7 @@
         </footer>
     </div>
 
+    <!-- Menu de contexto (aparece com clique direito) -->
     <div id="contextMenu" class="context-menu">
         <div class="context-menu-item" id="ctxRename">
             <span>✏️</span> Renomear Solução
@@ -41,6 +49,7 @@
         </div>
     </div>
 
+    <!-- Popup para renomear solução -->
     <div id="popupRename" class="popup-overlay">
         <div class="popup-content">
             <h3>Mudar nome da solução</h3>
@@ -48,16 +57,22 @@
                 <input type="text" id="inputNewName" placeholder="Novo nome da solução...">
             </div>
             <div class="popup-buttons">
+                <!-- Botão Cancelar: branco com letras laranjas -->
                 <button class="btn btn-cancel" id="btnCancelRename">Cancelar</button>
+                <!-- Botão Salvar: laranja com fonte branca -->
                 <button class="btn btn-primary" id="btnSaveRename">Salvar</button>
             </div>
         </div>
     </div>
 
+    <!-- Popup para escolher ícone -->
     <div id="popupIcon" class="popup-overlay">
-        <div class="popup-content" style="max-width: 600px;"> <h3>Escolha um ícone</h3>
+        <div class="popup-content" style="max-width: 600px;">
+            <h3>Escolha um ícone</h3>
+            <!-- Grid de 4 colunas com scroll para ícones -->
             <div class="icon-grid" id="iconGrid">
-                </div>
+                <!-- Ícones serão carregados dinamicamente -->
+            </div>
             <div class="popup-buttons">
                 <button class="btn btn-cancel" id="btnCancelIcon">Cancelar</button>
                 <button class="btn btn-primary" id="btnSaveIcon">Salvar</button>
@@ -65,12 +80,14 @@
         </div>
     </div>
 
+    <!-- Popup para confirmar exclusão -->
     <div id="popupDelete" class="popup-overlay">
         <div class="popup-content">
             <h3>Excluir solução</h3>
             <p>Caso deseja excluir a solução, a solução não poderá ser resgatada.</p>
             <div class="popup-buttons">
                 <button class="btn btn-cancel" id="btnCancelDelete">Cancelar</button>
+                <!-- Botão Apagar com fundo vermelho para destaque -->
                 <button class="btn btn-primary" id="btnConfirmDelete" style="background: #ff4444;">Apagar</button>
             </div>
         </div>
