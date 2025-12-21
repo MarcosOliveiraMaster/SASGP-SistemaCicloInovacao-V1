@@ -1,18 +1,6 @@
-// Importação direta via CDN do Google para funcionamento sem necessidade de Node.js/Build tools
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { 
-    getFirestore, 
-    collection, 
-    addDoc, 
-    getDocs, 
-    updateDoc, 
-    doc, 
-    query, 
-    orderBy,
-    serverTimestamp 
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+// banco.js - Usando Firebase v9 em modo de compatibilidade
 
-// Configuração do Firebase mantida conforme seu projeto
+// Configuração do Firebase
 const firebaseConfig = {
     apiKey: "AIzaSyAD9Ffs9CQ4jWIl8P3mOKEYq8V5jzwMfXQ",
     authDomain: "sasgp-sistemainovacao-v1.firebaseapp.com",
@@ -23,28 +11,27 @@ const firebaseConfig = {
     measurementId: "G-5NLX08FH2R"
 };
 
-// Inicialização do Firebase e Firestore
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+// Inicializar Firebase
+const app = firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore(app);
 
-// Função para gerar ID único localmente
+// GERADOR DE ID ÚNICO
 function generateId() {
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
 
-// --- FUNÇÕES DE PERSISTÊNCIA ---
-
-export async function adicionarSolucao(dados) {
+// FUNÇÕES PARA SOLUÇÕES
+async function adicionarSolucao(dados) {
     try {
-        const id = generateId(); //
+        const id = generateId();
         const dadosCompletos = {
             id: id,
             ...dados,
-            dataCriacao: serverTimestamp(),
-            dataAtualizacao: serverTimestamp()
+            dataCriacao: firebase.firestore.FieldValue.serverTimestamp(),
+            dataAtualizacao: firebase.firestore.FieldValue.serverTimestamp()
         };
         
-        const docRef = await addDoc(collection(db, "ResumoSolucao"), dadosCompletos); //
+        const docRef = await db.collection("ResumoSolucao").add(dadosCompletos);
         return { success: true, id: id, docId: docRef.id };
     } catch (error) {
         console.error("Erro ao adicionar solução:", error);
@@ -52,12 +39,13 @@ export async function adicionarSolucao(dados) {
     }
 }
 
-export async function listarSolucoes() {
+async function listarSolucoes() {
     try {
-        const q = query(collection(db, "ResumoSolucao"), orderBy("dataCriacao", "desc")); //
-        const querySnapshot = await getDocs(q);
-        const solucoes = [];
+        const querySnapshot = await db.collection("ResumoSolucao")
+            .orderBy("dataCriacao", "desc")
+            .get();
         
+        const solucoes = [];
         querySnapshot.forEach((doc) => {
             solucoes.push({ id: doc.id, ...doc.data() });
         });
@@ -69,12 +57,12 @@ export async function listarSolucoes() {
     }
 }
 
-export async function atualizarSolucao(id, dados) {
+async function atualizarSolucao(id, dados) {
     try {
-        const docRef = doc(db, "ResumoSolucao", id); //
-        await updateDoc(docRef, {
+        const docRef = db.collection("ResumoSolucao").doc(id);
+        await docRef.update({
             ...dados,
-            dataAtualizacao: serverTimestamp()
+            dataAtualizacao: firebase.firestore.FieldValue.serverTimestamp()
         });
         return { success: true };
     } catch (error) {
@@ -83,15 +71,16 @@ export async function atualizarSolucao(id, dados) {
     }
 }
 
-export async function salvarRespostasFormulario(idSolucao, respostas) {
+// FUNÇÕES PARA FORMULÁRIO
+async function salvarRespostasFormulario(idSolucao, respostas) {
     try {
         const dados = {
             idSolucao: idSolucao,
             respostas: respostas,
-            dataRegistro: serverTimestamp()
+            dataRegistro: firebase.firestore.FieldValue.serverTimestamp()
         };
         
-        const docRef = await addDoc(collection(db, "RespostasFormulario"), dados); //
+        const docRef = await db.collection("RespostasFormulario").add(dados);
         return { success: true, id: docRef.id };
     } catch (error) {
         console.error("Erro ao salvar respostas:", error);
@@ -99,15 +88,16 @@ export async function salvarRespostasFormulario(idSolucao, respostas) {
     }
 }
 
-export async function salvarRecursos(idSolucao, recursos) {
+// FUNÇÕES PARA RECURSOS
+async function salvarRecursos(idSolucao, recursos) {
     try {
         const dados = {
             idSolucao: idSolucao,
             recursos: recursos,
-            dataRegistro: serverTimestamp()
+            dataRegistro: firebase.firestore.FieldValue.serverTimestamp()
         };
         
-        const docRef = await addDoc(collection(db, "RecursosSolucao"), dados); //
+        const docRef = await db.collection("RecursosSolucao").add(dados);
         return { success: true, id: docRef.id };
     } catch (error) {
         console.error("Erro ao salvar recursos:", error);
@@ -115,7 +105,8 @@ export async function salvarRecursos(idSolucao, recursos) {
     }
 }
 
-export async function salvarPontuacao(idSolucao, killSwitch, matrizPositiva, matrizNegativa, score) {
+// FUNÇÕES PARA PONTUAÇÃO
+async function salvarPontuacao(idSolucao, killSwitch, matrizPositiva, matrizNegativa, score) {
     try {
         const dados = {
             idSolucao: idSolucao,
@@ -123,10 +114,10 @@ export async function salvarPontuacao(idSolucao, killSwitch, matrizPositiva, mat
             matrizPositiva: matrizPositiva,
             matrizNegativa: matrizNegativa,
             score: score,
-            dataRegistro: serverTimestamp()
+            dataRegistro: firebase.firestore.FieldValue.serverTimestamp()
         };
         
-        const docRef = await addDoc(collection(db, "PontuacaoSolucao"), dados); //
+        const docRef = await db.collection("PontuacaoSolucao").add(dados);
         return { success: true, id: docRef.id };
     } catch (error) {
         console.error("Erro ao salvar pontuação:", error);
@@ -134,15 +125,16 @@ export async function salvarPontuacao(idSolucao, killSwitch, matrizPositiva, mat
     }
 }
 
-export async function salvarCanvas(idSolucao, canvasData) {
+// FUNÇÕES PARA CANVAS
+async function salvarCanvas(idSolucao, canvasData) {
     try {
         const dados = {
             idSolucao: idSolucao,
             ...canvasData,
-            dataRegistro: serverTimestamp()
+            dataRegistro: firebase.firestore.FieldValue.serverTimestamp()
         };
         
-        const docRef = await addDoc(collection(db, "CanvasSolucao"), dados); //
+        const docRef = await db.collection("CanvasSolucao").add(dados);
         return { success: true, id: docRef.id };
     } catch (error) {
         console.error("Erro ao salvar canvas:", error);
@@ -150,10 +142,11 @@ export async function salvarCanvas(idSolucao, canvasData) {
     }
 }
 
-export async function buscarCanvas(idSolucao) {
+async function buscarCanvas(idSolucao) {
     try {
-        const q = query(collection(db, "CanvasSolucao"), orderBy("dataRegistro", "desc")); //
-        const querySnapshot = await getDocs(q);
+        const querySnapshot = await db.collection("CanvasSolucao")
+            .orderBy("dataRegistro", "desc")
+            .get();
         
         for (const doc of querySnapshot.docs) {
             const data = doc.data();
@@ -169,9 +162,8 @@ export async function buscarCanvas(idSolucao) {
     }
 }
 
-// Exportação das instâncias e do objeto padrão
-export { db };
-export default {
+// Exportar funções para uso global
+window.BancoDeDados = {
     adicionarSolucao,
     listarSolucoes,
     atualizarSolucao,
@@ -179,5 +171,6 @@ export default {
     salvarRecursos,
     salvarPontuacao,
     salvarCanvas,
-    buscarCanvas
+    buscarCanvas,
+    db
 };
