@@ -4,18 +4,24 @@
 // Arquivo principal com todas as funcionalidades JavaScript
 // ============================================================================
 
-// Configurações globais do sistema
-let currentSolutionId = null;      // ID da solução atual
-let currentStep = 0;               // Step atual no formulário
-let formData = {};                 // Dados do formulário
-let recursosData = [];             // Dados da tabela de recursos
-let pontuacaoData = {};            // Dados de pontuação (Kill Switch)
-let canvasData = {};               // Dados do Canvas
-let rightClickedSolutionId = null; // ID da solução clicada com botão direito
+// ==============================
+// CONFIGURAÇÕES GLOBAIS E CONSTANTES
+// ==============================
 
-// Constantes do sistema
-const totalSteps = 4; // Formulário + Recursos + KillSwitch + Canvas
-const cores = ['laranja', 'azul', 'roxo']; // Cores dos cards
+let currentSolutionId = null;       // ID da solução atual (campo 'id')
+let currentSolutionDocId = null;    // ID do documento Firestore atual
+let currentStep = 0;
+let formData = {};
+let recursosData = [];
+let pontuacaoData = {};
+let canvasData = {};
+
+// Variáveis para menu de contexto
+let rightClickedSolutionDocId = null;     // docId da solução clicada
+let rightClickedSolutionId = null;        // id da solução clicada
+
+const totalSteps = 4;
+const cores = ['laranja', 'azul', 'roxo'];
 const iconsList = ['🤖','🦄','🧠','👩🏼‍🦰','👨🏼‍🦰','🏃🏼‍♀️','💪🏼','🎮','🏆','🧩','🛠️','📑','📊','🚀','🌎','🔥','💡'];
 
 // ============================================================================
@@ -121,38 +127,139 @@ function setupContextMenuListeners() {
 }
 
 /**
- * Configura os botões e eventos dos popups
+ * Configura as ações dos botões dos popups
  */
 function setupPopupActions() {
-    // RENOMEAR - Configura botões do popup
-    document.getElementById('btnCancelRename').addEventListener('click', () => closePopup('popupRename'));
+    // ============================================
+    // POPUP RENOMEAR SOLUÇÃO
+    // ============================================
+    document.getElementById('btnCancelRename').addEventListener('click', () => {
+        closePopup('popupRename');
+    });
+    
     document.getElementById('btnSaveRename').addEventListener('click', async () => {
-        const newName = document.getElementById('inputNewName').value;
-        if (newName && rightClickedSolutionId) {
-            await BancoDeDados.atualizarSolucao(rightClickedSolutionId, { nome: newName });
-            closePopup('popupRename');
-            carregarSolucoes(); // Recarrega o grid
+        const newName = document.getElementById('inputNewName').value.trim();
+        
+        if (newName && rightClickedSolutionDocId) {
+            console.log(`📝 Renomeando solução ${rightClickedSolutionDocId} para: ${newName}`);
+            
+            // Mostrar feedback visual
+            document.getElementById('btnSaveRename').textContent = 'Salvando...';
+            document.getElementById('btnSaveRename').disabled = true;
+            
+            try {
+                // ATUALIZAR NO FIREBASE - Coleção ResumoSolucao
+                const resultado = await BancoDeDados.atualizarNomeSolucao(
+                    rightClickedSolutionDocId, 
+                    newName
+                );
+                
+                if (resultado.success) {
+                    console.log(`✅ Nome atualizado no Firebase`);
+                    showNotification('Nome atualizado com sucesso!', 'success');
+                    closePopup('popupRename');
+                    carregarSolucoes(); // Recarrega o grid
+                } else {
+                    throw new Error(resultado.error || 'Erro desconhecido');
+                }
+            } catch (error) {
+                console.error('❌ Erro ao renomear:', error);
+                showNotification('Erro ao atualizar nome. Tente novamente.', 'error');
+            } finally {
+                document.getElementById('btnSaveRename').textContent = 'Salvar';
+                document.getElementById('btnSaveRename').disabled = false;
+            }
+        } else {
+            showNotification('Digite um nome válido', 'warning');
         }
     });
-
-    // ÍCONE - Configura botões do popup
-    document.getElementById('btnCancelIcon').addEventListener('click', () => closePopup('popupIcon'));
+    
+    // ============================================
+    // POPUP MUDAR ÍCONE
+    // ============================================
+    document.getElementById('btnCancelIcon').addEventListener('click', () => {
+        closePopup('popupIcon');
+    });
+    
     document.getElementById('btnSaveIcon').addEventListener('click', async () => {
         const selectedIcon = document.querySelector('.icon-option.selected');
-        if (selectedIcon && rightClickedSolutionId) {
-            await BancoDeDados.atualizarSolucao(rightClickedSolutionId, { icone: selectedIcon.textContent });
-            closePopup('popupIcon');
-            carregarSolucoes();
+        
+        if (selectedIcon && rightClickedSolutionDocId) {
+            const novoIcone = selectedIcon.textContent;
+            console.log(`🎨 Alterando ícone da solução ${rightClickedSolutionDocId} para: ${novoIcone}`);
+            
+            // Mostrar feedback visual
+            document.getElementById('btnSaveIcon').textContent = 'Salvando...';
+            document.getElementById('btnSaveIcon').disabled = true;
+            
+            try {
+                // ATUALIZAR NO FIREBASE - Coleção ResumoSolucao
+                const resultado = await BancoDeDados.atualizarIconeSolucao(
+                    rightClickedSolutionDocId, 
+                    novoIcone
+                );
+                
+                if (resultado.success) {
+                    console.log(`✅ Ícone atualizado no Firebase`);
+                    showNotification('Ícone atualizado com sucesso!', 'success');
+                    closePopup('popupIcon');
+                    carregarSolucoes(); // Recarrega o grid
+                } else {
+                    throw new Error(resultado.error || 'Erro desconhecido');
+                }
+            } catch (error) {
+                console.error('❌ Erro ao atualizar ícone:', error);
+                showNotification('Erro ao atualizar ícone. Tente novamente.', 'error');
+            } finally {
+                document.getElementById('btnSaveIcon').textContent = 'Salvar';
+                document.getElementById('btnSaveIcon').disabled = false;
+            }
+        } else {
+            showNotification('Selecione um ícone', 'warning');
         }
     });
-
-    // DELETAR - Configura botões do popup
-    document.getElementById('btnCancelDelete').addEventListener('click', () => closePopup('popupDelete'));
+    
+    // ============================================
+    // POPUP EXCLUIR SOLUÇÃO
+    // ============================================
+    document.getElementById('btnCancelDelete').addEventListener('click', () => {
+        closePopup('popupDelete');
+    });
+    
     document.getElementById('btnConfirmDelete').addEventListener('click', async () => {
-        if (rightClickedSolutionId) {
-            await BancoDeDados.excluirSolucao(rightClickedSolutionId);
-            closePopup('popupDelete');
-            carregarSolucoes();
+        if (rightClickedSolutionDocId) {
+            console.log(`🗑️ Iniciando exclusão da solução ${rightClickedSolutionDocId}`);
+            
+            // Mostrar feedback visual
+            const btnConfirm = document.getElementById('btnConfirmDelete');
+            const btnCancel = document.getElementById('btnCancelDelete');
+            
+            btnConfirm.textContent = 'Excluindo...';
+            btnConfirm.disabled = true;
+            btnCancel.disabled = true;
+            
+            try {
+                // EXCLUIR DO FIREBASE - TODAS AS COLEÇÕES
+                const resultado = await BancoDeDados.excluirSolucaoCompleta(
+                    rightClickedSolutionDocId
+                );
+                
+                if (resultado.success) {
+                    console.log(`✅ Solução ${resultado.solucaoId} excluída completamente`);
+                    showNotification('Solução excluída com sucesso!', 'success');
+                    closePopup('popupDelete');
+                    carregarSolucoes(); // Recarrega o grid
+                } else {
+                    throw new Error(resultado.error || 'Erro desconhecido');
+                }
+            } catch (error) {
+                console.error('❌ Erro ao excluir solução:', error);
+                showNotification('Erro ao excluir solução. Tente novamente.', 'error');
+            } finally {
+                btnConfirm.textContent = 'Apagar';
+                btnConfirm.disabled = false;
+                btnCancel.disabled = false;
+            }
         }
     });
 }
@@ -254,7 +361,7 @@ function renderizarSolucoes(grid, solucoes) {
 }
 
 /**
- * Cria um card de solução
+ * Cria um card de solução com eventos de clique
  * @param {Object} solucao - Dados da solução
  * @param {string} cor - Cor do card
  * @returns {HTMLElement} Elemento do card
@@ -263,7 +370,7 @@ function createSolutionCard(solucao, cor) {
     const card = document.createElement('div');
     card.className = `solution-card ${cor}`;
     
-    // Ícone padrão se não existir
+    // Ícone da solução (usa campo 'icone' ou padrão 💡)
     const icon = solucao.icone || '💡'; 
     
     card.innerHTML = `
@@ -273,18 +380,28 @@ function createSolutionCard(solucao, cor) {
         <div class="card-title">${solucao.nome || 'Solução Digital'}</div>
     `;
     
-    // Clique esquerdo: Abrir canvas da solução
-    card.addEventListener('click', () => {
-        localStorage.setItem('currentSolutionId', solucao.id || solucao.docId);
-        window.location.href = `canvas.html?id=${solucao.id || solucao.docId}`;
+    // CLIQUE ESQUERDO: Abrir canvas da solução
+    card.addEventListener('click', (e) => {
+        // Verificar se não foi clique direito recente
+        if (e.button !== 2) {
+            // Salvar ambos os IDs para uso futuro
+            localStorage.setItem('currentSolutionDocId', solucao.docId);
+            localStorage.setItem('currentSolutionId', solucao.id);
+            window.location.href = `canvas.html?id=${solucao.id}`;
+        }
     });
 
-    // Clique direito: Mostrar menu de contexto
+    // CLIQUE DIREITO: Menu de contexto
     card.addEventListener('contextmenu', (e) => {
-        e.preventDefault(); // Impede menu nativo do navegador
+        e.preventDefault(); // Bloqueia menu nativo do navegador
         
-        rightClickedSolutionId = solucao.id || solucao.docId; // Salva ID
+        // Salvar IDs da solução clicada
+        rightClickedSolutionDocId = solucao.docId;  // ID do documento Firestore
+        rightClickedSolutionId = solucao.id;        // ID da solução (campo 'id')
         
+        console.log(`🖱️ Solução clicada: docId=${rightClickedSolutionDocId}, id=${rightClickedSolutionId}`);
+        
+        // Posicionar e mostrar menu de contexto
         const contextMenu = document.getElementById('contextMenu');
         contextMenu.style.display = 'flex';
         contextMenu.style.top = `${e.pageY}px`;
@@ -1005,6 +1122,84 @@ function limparDadosTemporarios() {
 // ============================================================================
 // FUNÇÕES AUXILIARES
 // ============================================================================
+
+/**
+ * Exibe notificação na tela
+ * @param {string} message - Mensagem a exibir
+ * @param {string} type - Tipo: 'success', 'error', 'warning'
+ */
+function showNotification(message, type = 'info') {
+    // Remove notificação anterior se existir
+    const existing = document.getElementById('global-notification');
+    if (existing) existing.remove();
+    
+    // Cria nova notificação
+    const notification = document.createElement('div');
+    notification.id = 'global-notification';
+    notification.className = `notification ${type}`;
+    notification.innerHTML = `
+        <div class="notification-content">
+            <span class="notification-icon">${getNotificationIcon(type)}</span>
+            <span class="notification-text">${message}</span>
+        </div>
+    `;
+    
+    // Estilos inline para a notificação
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${type === 'success' ? '#4CAF50' : type === 'error' ? '#f44336' : '#FF9800'};
+        color: white;
+        padding: 15px 20px;
+        border-radius: var(--borda-arredondada);
+        box-shadow: var(--sombra-media);
+        z-index: 9999;
+        animation: slideIn 0.3s ease;
+        font-family: 'Comfortaa', cursive;
+        max-width: 300px;
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Remove após 5 segundos
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => {
+                if (notification.parentNode) notification.remove();
+            }, 300);
+        }
+    }, 5000);
+}
+
+/**
+ * Retorna ícone para tipo de notificação
+ * @param {string} type - Tipo de notificação
+ * @returns {string} Emoji do ícone
+ */
+function getNotificationIcon(type) {
+    switch(type) {
+        case 'success': return '✅';
+        case 'error': return '❌';
+        case 'warning': return '⚠️';
+        default: return 'ℹ️';
+    }
+}
+
+// Adicionar animações CSS para notificações
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
+    }
+`;
+document.head.appendChild(style);
 
 /**
  * Inicializa tooltips (se necessário)
