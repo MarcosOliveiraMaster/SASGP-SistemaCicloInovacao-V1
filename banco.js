@@ -465,3 +465,188 @@ window.BancoDeDados = {
 };
 
 console.log("🔥 Firebase configurado para SASGP - Versão corrigida");
+
+// ============================================================================
+// FUNÇÕES PARA AVALIAÇÕES
+// ============================================================================
+
+/**
+ * SALVAR AVALIAÇÃO
+ * @param {string} idSolucao - ID da solução
+ * @param {Object} avaliacao - Dados da avaliação
+ */
+async function salvarAvaliacao(idSolucao, avaliacao) {
+    try {
+        const dados = {
+            idSolucao: idSolucao,
+            ...avaliacao,
+            dataRegistro: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        
+        const docRef = await db.collection("avaliacoes").add(dados);
+        return { success: true, id: docRef.id };
+    } catch (error) {
+        console.error("❌ Erro ao salvar avaliação:", error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * LISTAR AVALIAÇÕES POR SOLUÇÃO
+ * @param {string} idSolucao - ID da solução
+ */
+async function listarAvaliacoes(idSolucao) {
+    try {
+        const querySnapshot = await db.collection("avaliacoes")
+            .where("idSolucao", "==", idSolucao)
+            .orderBy("dataRegistro", "desc")
+            .get();
+        
+        const avaliacoes = [];
+        querySnapshot.forEach((doc) => {
+            avaliacoes.push({ 
+                docId: doc.id,
+                ...doc.data()
+            });
+        });
+        
+        return { success: true, data: avaliacoes };
+    } catch (error) {
+        console.error("❌ Erro ao listar avaliações:", error);
+        return { success: false, error: error.message };
+    }
+}
+
+// ============================================================================
+// FUNÇÕES PARA RELATÓRIOS (HISTÓRICO)
+// ============================================================================
+
+/**
+ * SALVAR RELATÓRIO
+ * @param {string} idSolucao - ID da solução
+ * @param {Object} relatorio - Dados do relatório
+ */
+async function salvarRelatorio(idSolucao, relatorio) {
+    try {
+        const dados = {
+            idSolucao: idSolucao,
+            ...relatorio,
+            dataRegistro: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        
+        const docRef = await db.collection("relatorios").add(dados);
+        return { success: true, id: docRef.id };
+    } catch (error) {
+        console.error("❌ Erro ao salvar relatório:", error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * LISTAR RELATÓRIOS POR SOLUÇÃO
+ * @param {string} idSolucao - ID da solução
+ */
+async function listarRelatorios(idSolucao) {
+    try {
+        const querySnapshot = await db.collection("relatorios")
+            .where("idSolucao", "==", idSolucao)
+            .orderBy("dataRegistro", "desc")
+            .get();
+        
+        const relatorios = [];
+        querySnapshot.forEach((doc) => {
+            relatorios.push({ 
+                docId: doc.id,
+                ...doc.data()
+            });
+        });
+        
+        return { success: true, data: relatorios };
+    } catch (error) {
+        console.error("❌ Erro ao listar relatórios:", error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * EXCLUIR RELATÓRIO
+ * @param {string} docId - ID do documento do relatório
+ */
+async function excluirRelatorio(docId) {
+    try {
+        await db.collection("relatorios").doc(docId).delete();
+        return { success: true };
+    } catch (error) {
+        console.error("❌ Erro ao excluir relatório:", error);
+        return { success: false, error: error.message };
+    }
+}
+
+// ============================================================================
+// FUNÇÕES PARA STATUS DA SOLUÇÃO
+// ============================================================================
+
+/**
+ * ATUALIZAR STATUS DA SOLUÇÃO
+ * @param {string} docId - ID do documento Firestore
+ * @param {string} status - Novo status
+ */
+async function atualizarStatusSolucao(docId, status) {
+    try {
+        const docRef = db.collection("ResumoSolucao").doc(docId);
+        await docRef.update({
+            status: status,
+            dataAtualizacao: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        console.log(`✅ Status da solução ${docId} atualizado: ${status}`);
+        return { success: true };
+    } catch (error) {
+        console.error("❌ Erro ao atualizar status:", error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * OBTER STATUS DA SOLUÇÃO
+ * @param {string} docId - ID do documento Firestore
+ */
+async function obterStatusSolucao(docId) {
+    try {
+        const docRef = db.collection("ResumoSolucao").doc(docId);
+        const doc = await docRef.get();
+        
+        if (doc.exists) {
+            const data = doc.data();
+            return { 
+                success: true, 
+                status: data.status || "" 
+            };
+        } else {
+            return { success: false, error: "Documento não encontrado" };
+        }
+    } catch (error) {
+        console.error("❌ Erro ao obter status:", error);
+        return { success: false, error: error.message };
+    }
+}
+
+// ============================================================================
+// EXPORTAÇÃO DAS NOVAS FUNÇÕES
+// ============================================================================
+
+// Atualizar o objeto BancoDeDados:
+window.BancoDeDados = {
+    // ... funções existentes ...
+    
+    // Novas funções:
+    salvarAvaliacao,
+    listarAvaliacoes,
+    salvarRelatorio,
+    listarRelatorios,
+    excluirRelatorio,
+    atualizarStatusSolucao,
+    obterStatusSolucao,
+    
+    // ... resto das funções existentes ...
+};

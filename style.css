@@ -757,3 +757,349 @@ input[type="range"]::-webkit-slider-thumb:hover {
     border-radius: var(--borda-arredondada);
     border: 2px solid #ff4444;
 }
+
+/* ============================================================================
+   ESTILOS PARA PÁGINA DE AVALIAÇÃO
+   ============================================================================ */
+
+/* Container de status */
+.status-container {
+    background: var(--branco);
+    border-radius: var(--borda-arredondada);
+    padding: 20px;
+    margin-bottom: 30px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    box-shadow: var(--sombra-suave);
+}
+
+.status-container label {
+    font-weight: 600;
+    color: var(--cinza-escuro);
+    margin: 0;
+}
+
+.status-select {
+    flex: 1;
+    max-width: 300px;
+}
+
+/* Header laranja com estrelas */
+.header-laranja {
+    background: linear-gradient(135deg, var(--cor-laranja), var(--cor-laranja-claro));
+    border-radius: var(--borda-arredondada);
+    padding: 25px;
+    text-align: center;
+    margin-bottom: 30px;
+    width: 40%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.header-laranja h3 {
+    color: var(--branco);
+    margin-bottom: 15px;
+    font-size: 1.5rem;
+}
+
+.estrelas-media {
+    font-size: 2.5rem;
+    letter-spacing: 5px;
+}
+
+/* Header das avaliações */
+.avaliacoes-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.avaliacoes-header h2 {
+    color: var(--cinza-escuro);
+}
+
+/* Grid de avaliações (4 colunas) */
+.grid-avaliacoes {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-bottom: 40px;
+}
+
+@media (max-width: 1200px) {
+    .grid-avaliacoes {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .grid-avaliacoes {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .grid-avaliacoes {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Card de avaliação */
+.avaliacao-card {
+    background: var(--branco);
+    border-radius: var(--borda-arredondada);
+    padding: 20px;
+    box-shadow: var(--sombra-suave);
+    transition: var(--transicao);
+    display: flex;
+    flex-direction: column;
+    min-height: 180px;
+    border: 1px solid var(--cinza-medio);
+}
+
+.avaliacao-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--sombra-media);
+}
+
+.avaliacao-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+}
+
+.avaliacao-header h4 {
+    color: var(--cor-laranja);
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+.avaliacao-data {
+    font-size: 0.85rem;
+    color: var(--cinza-escuro);
+    opacity: 0.7;
+}
+
+.avaliacao-estrelas {
+    font-size: 1.5rem;
+    margin: 10px 0;
+    color: #FFD700;
+}
+
+.avaliacao-comentario {
+    color: var(--cinza-escuro);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    flex-grow: 1;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+}
+
+/* Card vazio para avaliações */
+.avaliacao-vazia {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px 20px;
+    background: var(--branco);
+    border: 3px dashed var(--cor-laranja);
+    border-radius: var(--borda-arredondada);
+    margin: 20px 0;
+}
+
+.avaliacao-vazia-icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    color: var(--cor-laranja);
+}
+
+.avaliacao-vazia h3 {
+    color: var(--cinza-escuro);
+    margin-bottom: 10px;
+}
+
+.avaliacao-vazia p {
+    color: var(--cinza-escuro);
+    opacity: 0.7;
+}
+
+/* Seleção de estrelas no popup */
+.estrelas-selecao {
+    display: flex;
+    gap: 10px;
+    margin: 15px 0;
+}
+
+.estrela {
+    font-size: 2.5rem;
+    cursor: pointer;
+    transition: var(--transicao);
+    color: #ccc;
+}
+
+.estrela:hover {
+    transform: scale(1.2);
+    color: #FFD700;
+}
+
+/* ============================================================================
+   ESTILOS PARA PÁGINA DE HISTÓRICO
+   ============================================================================ */
+
+/* Header do histórico */
+.historico-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.historico-header h2 {
+    color: var(--cinza-escuro);
+}
+
+/* Container de relatórios */
+.historico-container {
+    margin-bottom: 40px;
+}
+
+/* Card de relatório */
+.relatorio-card {
+    background: var(--branco);
+    border-radius: var(--borda-arredondada);
+    padding: 25px;
+    margin-bottom: 20px;
+    box-shadow: var(--sombra-suave);
+    transition: var(--transicao);
+    border: 1px solid var(--cinza-medio);
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.05));
+}
+
+.relatorio-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--sombra-media);
+}
+
+.relatorio-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+}
+
+.relatorio-header h4 {
+    color: var(--cor-laranja);
+    font-size: 1.3rem;
+    margin: 0;
+    flex-grow: 1;
+}
+
+.btn-delete-relatorio {
+    background: none;
+    border: none;
+    color: var(--cinza-medio);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 5px;
+    transition: var(--transicao);
+    margin-left: 10px;
+}
+
+.btn-delete-relatorio:hover {
+    color: #ff4444;
+}
+
+.relatorio-meta {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    font-size: 0.9rem;
+    color: var(--cinza-escuro);
+    opacity: 0.8;
+}
+
+.relatorio-autor {
+    font-weight: 600;
+}
+
+.relatorio-descricao {
+    color: var(--cinza-escuro);
+    line-height: 1.6;
+    font-size: 0.95rem;
+    white-space: pre-wrap;
+    max-height: 200px;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+.relatorio-descricao::-webkit-scrollbar {
+    width: 5px;
+}
+
+.relatorio-descricao::-webkit-scrollbar-thumb {
+    background: var(--cinza-medio);
+    border-radius: 3px;
+}
+
+/* Card vazio para relatórios */
+.relatorio-vazio {
+    text-align: center;
+    padding: 80px 20px;
+    background: var(--branco);
+    border: 3px dashed var(--cinza-medio);
+    border-radius: var(--borda-arredondada);
+}
+
+.relatorio-vazio-icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    color: var(--cinza-medio);
+}
+
+.relatorio-vazio h3 {
+    color: var(--cinza-escuro);
+    margin-bottom: 10px;
+}
+
+.relatorio-vazio p {
+    color: var(--cinza-escuro);
+    opacity: 0.7;
+}
+
+/* Popup grande para relatórios */
+.popup-grande {
+    max-width: 700px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.popup-grande textarea {
+    min-height: 200px;
+}
+
+/* ============================================================================
+   AJUSTES GERAIS
+   ============================================================================ */
+
+.form-control {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid var(--cinza-medio);
+    border-radius: 8px;
+    font-family: 'Comfortaa', cursive;
+    font-size: 1rem;
+    transition: var(--transicao);
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--cor-laranja);
+}
+
+.media-estrelas-container {
+    margin-bottom: 30px;
+}
