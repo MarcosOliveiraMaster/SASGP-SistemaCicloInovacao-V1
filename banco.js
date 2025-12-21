@@ -30,7 +30,6 @@ async function adicionarSolucao(dados) {
             dataCriacao: firebase.firestore.FieldValue.serverTimestamp(),
             dataAtualizacao: firebase.firestore.FieldValue.serverTimestamp()
         };
-        
         const docRef = await db.collection("ResumoSolucao").add(dadosCompletos);
         return { success: true, id: id, docId: docRef.id };
     } catch (error) {
@@ -41,15 +40,11 @@ async function adicionarSolucao(dados) {
 
 async function listarSolucoes() {
     try {
-        const querySnapshot = await db.collection("ResumoSolucao")
-            .orderBy("dataCriacao", "desc")
-            .get();
-        
+        const querySnapshot = await db.collection("ResumoSolucao").orderBy("dataCriacao", "desc").get();
         const solucoes = [];
         querySnapshot.forEach((doc) => {
             solucoes.push({ id: doc.id, ...doc.data() });
         });
-        
         return { success: true, data: solucoes };
     } catch (error) {
         console.error("Erro ao listar soluções:", error);
@@ -57,9 +52,9 @@ async function listarSolucoes() {
     }
 }
 
-async function atualizarSolucao(id, dados) {
+async function atualizarSolucao(docId, dados) {
     try {
-        const docRef = db.collection("ResumoSolucao").doc(id);
+        const docRef = db.collection("ResumoSolucao").doc(docId);
         await docRef.update({
             ...dados,
             dataAtualizacao: firebase.firestore.FieldValue.serverTimestamp()
@@ -71,106 +66,67 @@ async function atualizarSolucao(id, dados) {
     }
 }
 
-// FUNÇÕES PARA FORMULÁRIO
+// Nova função para excluir solução
+async function excluirSolucao(docId) {
+    try {
+        await db.collection("ResumoSolucao").doc(docId).delete();
+        // Opcional: Aqui poderia deletar coleções relacionadas se necessário
+        return { success: true };
+    } catch (error) {
+        console.error("Erro ao excluir solução:", error);
+        return { success: false, error: error.message };
+    }
+}
+
+// FUNÇÕES PARA FORMULÁRIO E OUTROS DADOS
 async function salvarRespostasFormulario(idSolucao, respostas) {
     try {
-        const dados = {
-            idSolucao: idSolucao,
-            respostas: respostas,
-            dataRegistro: firebase.firestore.FieldValue.serverTimestamp()
-        };
-        
+        const dados = { idSolucao, respostas, dataRegistro: firebase.firestore.FieldValue.serverTimestamp() };
         const docRef = await db.collection("RespostasFormulario").add(dados);
         return { success: true, id: docRef.id };
     } catch (error) {
-        console.error("Erro ao salvar respostas:", error);
         return { success: false, error: error.message };
     }
 }
 
-// FUNÇÕES PARA RECURSOS
 async function salvarRecursos(idSolucao, recursos) {
     try {
-        const dados = {
-            idSolucao: idSolucao,
-            recursos: recursos,
-            dataRegistro: firebase.firestore.FieldValue.serverTimestamp()
-        };
-        
+        const dados = { idSolucao, recursos, dataRegistro: firebase.firestore.FieldValue.serverTimestamp() };
         const docRef = await db.collection("RecursosSolucao").add(dados);
         return { success: true, id: docRef.id };
     } catch (error) {
-        console.error("Erro ao salvar recursos:", error);
         return { success: false, error: error.message };
     }
 }
 
-// FUNÇÕES PARA PONTUAÇÃO
 async function salvarPontuacao(idSolucao, killSwitch, matrizPositiva, matrizNegativa, score) {
     try {
-        const dados = {
-            idSolucao: idSolucao,
-            killSwitch: killSwitch,
-            matrizPositiva: matrizPositiva,
-            matrizNegativa: matrizNegativa,
-            score: score,
-            dataRegistro: firebase.firestore.FieldValue.serverTimestamp()
-        };
-        
+        const dados = { idSolucao, killSwitch, matrizPositiva, matrizNegativa, score, dataRegistro: firebase.firestore.FieldValue.serverTimestamp() };
         const docRef = await db.collection("PontuacaoSolucao").add(dados);
         return { success: true, id: docRef.id };
     } catch (error) {
-        console.error("Erro ao salvar pontuação:", error);
         return { success: false, error: error.message };
     }
 }
 
-// FUNÇÕES PARA CANVAS
 async function salvarCanvas(idSolucao, canvasData) {
     try {
-        const dados = {
-            idSolucao: idSolucao,
-            ...canvasData,
-            dataRegistro: firebase.firestore.FieldValue.serverTimestamp()
-        };
-        
+        const dados = { idSolucao, ...canvasData, dataRegistro: firebase.firestore.FieldValue.serverTimestamp() };
         const docRef = await db.collection("CanvasSolucao").add(dados);
         return { success: true, id: docRef.id };
     } catch (error) {
-        console.error("Erro ao salvar canvas:", error);
         return { success: false, error: error.message };
     }
 }
 
-async function buscarCanvas(idSolucao) {
-    try {
-        const querySnapshot = await db.collection("CanvasSolucao")
-            .orderBy("dataRegistro", "desc")
-            .get();
-        
-        for (const doc of querySnapshot.docs) {
-            const data = doc.data();
-            if (data.idSolucao === idSolucao) {
-                return { success: true, data: { id: doc.id, ...data } };
-            }
-        }
-        
-        return { success: true, data: null };
-    } catch (error) {
-        console.error("Erro ao buscar canvas:", error);
-        return { success: false, error: error.message };
-    }
-}
-
-// Exportar funções para uso global
 window.BancoDeDados = {
     adicionarSolucao,
     listarSolucoes,
     atualizarSolucao,
+    excluirSolucao,
     salvarRespostasFormulario,
     salvarRecursos,
     salvarPontuacao,
     salvarCanvas,
-    buscarCanvas,
     db
 };

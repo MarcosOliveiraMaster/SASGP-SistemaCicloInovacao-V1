@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <!-- Firebase SDK -->
+    <meta charset="UTF-8">
+    <title>Kill Switch - SASGP</title>
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
-    <!-- Nossos scripts -->
     <script src="banco.js" defer></script>
     <script src="script.js" defer></script> 
     <link rel="stylesheet" href="style.css">
@@ -13,7 +14,6 @@
 <body>
     <div class="container">
         <div class="form-container">
-            <!-- Kill Switch Section -->
             <div class="kill-switch-section">
                 <h2 class="form-title">Kill Switch</h2>
                 <p class="form-description">Marque as condições que sua solução atende:</p>
@@ -64,7 +64,6 @@
                 </div>
             </div>
             
-            <!-- Matriz Positiva -->
             <div class="matriz-section matriz-positiva">
                 <h3 class="form-title">Matriz de Pontuação Positiva</h3>
                 
@@ -93,7 +92,6 @@
                 </div>
             </div>
             
-            <!-- Matriz Negativa -->
             <div class="matriz-section matriz-negativa">
                 <h3 class="form-title">Matriz de Pontuação Negativa</h3>
                 
@@ -116,7 +114,6 @@
                 </div>
             </div>
             
-            <!-- Score Display -->
             <div class="score-section">
                 <h3 class="form-title">Score da Solução</h3>
                 <div class="score-display">
@@ -129,12 +126,8 @@
             </div>
             
             <div class="btn-container">
-                <button class="btn btn-secondary btn-voltar">
-                    ← Voltar
-                </button>
-                <button class="btn btn-primary btn-avancar">
-                    Avançar →
-                </button>
+                <button class="btn btn-secondary btn-voltar">Voltar</button>
+                <button class="btn btn-primary btn-avancar">Avançar</button>
             </div>
         </div>
     </div>

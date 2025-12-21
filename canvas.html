@@ -1,16 +1,15 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <!-- Firebase SDK -->
+    <meta charset="UTF-8">
+    <title>Canvas de Produto - SASGP</title>
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
-    <!-- Nossos scripts -->
     <script src="banco.js" defer></script>
     <script src="script.js" defer></script>
     <link rel="stylesheet" href="style.css">
-    
-
 </head>
 <body>
     <div class="container">
@@ -21,67 +20,56 @@
         
         <main>
             <div class="canvas-grid">
-                <!-- Público Alvo -->
                 <div class="canvas-cell" id="publico-alvo">
                     <h3>Público Alvo</h3>
                     <p>Clique para editar...</p>
                 </div>
                 
-                <!-- Problema Resolve -->
                 <div class="canvas-cell" id="problema-resolve">
                     <h3>Qual Problema Resolve</h3>
                     <p>Clique para editar...</p>
                 </div>
                 
-                <!-- Formato da Solução -->
                 <div class="canvas-cell" id="formato-solucao">
                     <h3>Formato da Solução</h3>
                     <p>Clique para editar...</p>
                 </div>
                 
-                <!-- Funcionalidades -->
                 <div class="canvas-cell" id="funcionalidades">
                     <h3>Principais Funcionalidades</h3>
                     <p>Clique para editar...</p>
                 </div>
                 
-                <!-- Modelo de Negócio -->
                 <div class="canvas-cell" id="modelo-negocio">
                     <h3>Modelo de Negócio</h3>
                     <p>Clique para editar...</p>
                 </div>
                 
-                <!-- TRL Atual -->
                 <div class="canvas-cell" id="trl-atual">
                     <h3>TRL Atual</h3>
                     <p>Clique para editar...</p>
                 </div>
                 
-                <!-- TRL Esperada -->
                 <div class="canvas-cell" id="trl-esperada">
                     <h3>TRL Esperada</h3>
                     <p>Clique para editar...</p>
                 </div>
                 
-                <!-- Link do Protótipo -->
                 <div class="canvas-cell" id="link-prototipo">
                     <h3>Link do Protótipo</h3>
                     <p>Clique para editar...</p>
                 </div>
                 
-                <!-- Link do Pitch -->
                 <div class="canvas-cell" id="link-pitch">
                     <h3>Link do Pitch de Apresentação</h3>
                     <p>Clique para editar...</p>
                 </div>
                 
-                <!-- Link do PDF -->
                 <div class="canvas-cell" id="link-pdf">
                     <h3>Link do Pitch PDF</h3>
                     <p>Clique para editar...</p>
                 </div>
                 
-                <!-- Escalabilidade -->
                 <div class="canvas-cell" id="escalabilidade">
                     <h3>Escalabilidade</h3>
                     <p>Clique para editar...</p>
@@ -89,12 +77,8 @@
             </div>
             
             <div class="btn-container">
-                <button class="btn btn-secondary btn-voltar">
-                    ← Voltar
-                </button>
-                <button class="btn btn-primary btn-finalizar">
-                    ✅ Finalizar e Salvar
-                </button>
+                <button class="btn btn-secondary btn-voltar">Voltar</button>
+                <button class="btn btn-primary btn-finalizar">✅ Finalizar e Salvar</button>
             </div>
         </main>
     </div>

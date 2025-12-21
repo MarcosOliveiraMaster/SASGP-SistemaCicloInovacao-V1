@@ -1,68 +1,51 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <!-- Firebase SDK -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Novo Projeto - SASGP</title>
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
-    <!-- Nossos scripts -->
     <script src="banco.js" defer></script>
     <script src="script.js" defer></script>
     <link rel="stylesheet" href="style.css">
+</head>
 <body>
     <div class="container">
         <div class="form-container">
-            <!-- Barra de Progresso -->
             <div class="progress-container">
                 <div class="progress-bar" id="progressBar"></div>
             </div>
             
-            <!-- Step 0: Boas-vindas -->
             <div class="form-step active" id="step0">
                 <h2 class="form-title">Bem-vindo ao Cadastro de Soluções</h2>
                 <p class="form-description">Vamos criar uma nova solução digital para o ecossistema SASGP. Clique em avançar para começar.</p>
                 
                 <div class="btn-container">
-                    <button class="btn btn-secondary btn-voltar">
-                        ← Voltar
-                    </button>
-                    <button class="btn btn-primary btn-avancar">
-                        Avançar →
-                    </button>
+                    <button class="btn btn-secondary btn-voltar">Voltar</button>
+                    <button class="btn btn-primary btn-avancar">Avançar</button>
                 </div>
             </div>
             
-            <!-- Step 1: Tipo de cadastro -->
             <div class="form-step" id="step1">
                 <h2 class="form-title">O que iremos cadastrar?</h2>
                 <p class="form-description">Selecione o tipo de solução que você deseja cadastrar:</p>
                 
                 <div class="options-container">
-                    <div class="option-card" data-value="edital">
-                        Edital de Inovação
-                    </div>
-                    <div class="option-card" data-value="processo">
-                        Processo Interno
-                    </div>
-                    <div class="option-card" data-value="ferramenta">
-                        Implementação de Nova Ferramenta
-                    </div>
-                    <div class="option-card" data-value="solucao">
-                        Criar Nova Solução
-                    </div>
+                    <div class="option-card" data-value="edital">Edital de Inovação</div>
+                    <div class="option-card" data-value="processo">Processo Interno</div>
+                    <div class="option-card" data-value="ferramenta">Implementação de Nova Ferramenta</div>
+                    <div class="option-card" data-value="solucao">Criar Nova Solução</div>
                 </div>
                 
                 <div class="btn-container">
-                    <button class="btn btn-secondary btn-voltar">
-                        ← Voltar
-                    </button>
-                    <button class="btn btn-primary btn-avancar">
-                        Avançar →
-                    </button>
+                    <button class="btn btn-secondary btn-voltar">Voltar</button>
+                    <button class="btn btn-primary btn-avancar">Avançar</button>
                 </div>
             </div>
             
-            <!-- Step 2: Nome da solução -->
             <div class="form-step" id="step2">
                 <h2 class="form-title">Nome da sua solução</h2>
                 <p class="form-description">Escreva o nome da sua solução</p>
@@ -72,16 +55,11 @@
                 </div>
                 
                 <div class="btn-container">
-                    <button class="btn btn-secondary btn-voltar">
-                        ← Voltar
-                    </button>
-                    <button class="btn btn-primary btn-avancar">
-                        Avançar →
-                    </button>
+                    <button class="btn btn-secondary btn-voltar">Voltar</button>
+                    <button class="btn btn-primary btn-avancar">Avançar</button>
                 </div>
             </div>
             
-            <!-- Step 3: Descrição -->
             <div class="form-step" id="step3">
                 <h2 class="form-title">Faça uma breve descrição da sua solução</h2>
                 <p class="form-description">Descreva sua solução</p>
@@ -91,12 +69,8 @@
                 </div>
                 
                 <div class="btn-container">
-                    <button class="btn btn-secondary btn-voltar">
-                        ← Voltar
-                    </button>
-                    <button class="btn btn-primary btn-avancar">
-                        Avançar →
-                    </button>
+                    <button class="btn btn-secondary btn-voltar">Voltar</button>
+                    <button class="btn btn-primary btn-avancar">Avançar</button>
                 </div>
             </div>
         </div>
