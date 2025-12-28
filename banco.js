@@ -1,10 +1,8 @@
-// banco.js - Sistema de Gerenciamento do Firebase para SASGP
-// Versão corrigida com compatibilidade Firebase v9
+// banco.js - Camada de Dados SASGP (Versão Final Corrigida)
 
 // ============================================================================
-// CONFIGURAÇÃO DO FIREBASE
+// 1. CONFIGURAÇÃO DO FIREBASE
 // ============================================================================
-
 const firebaseConfig = {
     apiKey: "AIzaSyAD9Ffs9CQ4jWIl8P3mOKEYq8V5jzwMfXQ",
     authDomain: "sasgp-sistemainovacao-v1.firebaseapp.com",
@@ -15,638 +13,596 @@ const firebaseConfig = {
     measurementId: "G-5NLX08FH2R"
 };
 
-// Inicializar Firebase
-const app = firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore(app);
+// Inicialização segura
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+const db = firebase.firestore();
 
 // ============================================================================
-// FUNÇÕES UTILITÁRIAS
+// 2. FUNÇÕES AUXILIARES
 // ============================================================================
 
-/**
- * Gera um ID único para soluções
- * @returns {string} ID único
- */
+// Gera ID interno único para vincular coleções
 function generateId() {
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
 
-/**
- * Verifica se um documento existe no Firestore
- * @param {string} docId - ID do documento
- * @param {string} colecao - Nome da coleção
- * @returns {Promise<boolean>} True se existe
- */
-async function documentoExiste(docId, colecao = "ResumoSolucao") {
+// Limpa documentos antigos de uma coleção específica para um ID de solução
+async function deletarColecaoPorIdSolucao(nomeColecao, idInterno) {
     try {
-        const docRef = db.collection(colecao).doc(docId);
-        const doc = await docRef.get();
-        return doc.exists; // Firebase v9 compat mode usa .exists (propriedade)
+        console.log(`🧹 Limpando coleção ${nomeColecao} para ID ${idInterno}`);
+        const snapshot = await db.collection(nomeColecao).where("idSolucao", "==", idInterno).get();
+        
+        if (snapshot.empty) {
+            console.log(`✅ Nenhum documento para limpar em ${nomeColecao}`);
+            return;
+        }
+
+        const batch = db.batch();
+        let count = 0;
+        snapshot.docs.forEach((doc) => {
+            batch.delete(doc.ref);
+            count++;
+        });
+        
+        await batch.commit();
+        console.log(`✅ ${count} documento(s) removido(s) de ${nomeColecao}`);
     } catch (error) {
-        console.error("❌ Erro ao verificar documento:", error);
-        return false;
+        console.error(`❌ Erro ao limpar coleção ${nomeColecao}:`, error);
+        throw error;
     }
 }
 
 // ============================================================================
-// FUNÇÕES PRINCIPAIS DE GERENCIAMENTO DE SOLUÇÕES
+// 3. RESUMO DA SOLUÇÃO (CRUD PRINCIPAL)
 // ============================================================================
 
-/**
- * ADICIONAR NOVA SOLUÇÃO
- * @param {Object} dados - Dados da solução
- * @returns {Object} Resultado da operação
- */
 async function adicionarSolucao(dados) {
     try {
-        const id = generateId();
+        const idInterno = generateId();
+        
+        // Prepara objeto completo com valores padrão
         const dadosCompletos = {
-            id: id,
-            ...dados,
+            id: idInterno,
+            nome: dados.nome || 'Solução Sem Nome',
+            descricao: dados.descricao || '',
+            tipo: dados.tipo || 'Outros',
+            icone: dados.icone || '💡',
+            score: dados.score || 0,
+            status: dados.status || 'em-analise',
+            dadosKillswitch: dados.dadosKillswitch || {},
             dataCriacao: firebase.firestore.FieldValue.serverTimestamp(),
             dataAtualizacao: firebase.firestore.FieldValue.serverTimestamp()
         };
         
         const docRef = await db.collection("ResumoSolucao").add(dadosCompletos);
+        console.log("✅ Solução criada:", {
+            docId: docRef.id,
+            id: idInterno,
+            nome: dadosCompletos.nome
+        });
+        
         return { 
             success: true, 
-            id: id,
-            docId: docRef.id
+            id: idInterno, 
+            docId: docRef.id,
+            data: dadosCompletos
         };
     } catch (error) {
         console.error("❌ Erro ao adicionar solução:", error);
-        return { success: false, error: error.message };
+        return { 
+            success: false, 
+            error: error.message,
+            code: error.code
+        };
     }
 }
 
-/**
- * LISTAR SOLUÇÕES
- * @returns {Object} Lista de soluções
- */
 async function listarSolucoes() {
     try {
-        const querySnapshot = await db.collection("ResumoSolucao")
-            .orderBy("dataCriacao", "desc")
+        console.log("📋 Listando soluções...");
+        const snapshot = await db.collection("ResumoSolucao")
+            .orderBy("dataAtualizacao", "desc")
             .get();
-        
-        const solucoes = [];
-        querySnapshot.forEach((doc) => {
-            solucoes.push({ 
+            
+        const lista = [];
+        snapshot.forEach((doc) => {
+            const data = doc.data();
+            lista.push({
                 docId: doc.id,
-                ...doc.data()
+                ...data,
+                // Converter timestamps para strings
+                dataCriacao: data.dataCriacao ? data.dataCriacao.toDate().toISOString() : '',
+                dataAtualizacao: data.dataAtualizacao ? data.dataAtualizacao.toDate().toISOString() : ''
             });
         });
         
-        return { success: true, data: solucoes };
+        console.log(`✅ ${lista.length} solução(ões) encontrada(s)`);
+        return { success: true, data: lista };
     } catch (error) {
         console.error("❌ Erro ao listar soluções:", error);
-        return { success: false, error: error.message };
+        return { 
+            success: false, 
+            error: error.message,
+            data: []
+        };
     }
 }
 
-/**
- * OBTER SOLUÇÃO POR DOCID
- * @param {string} docId - ID do documento Firestore
- * @returns {Object} Dados da solução
- */
 async function obterSolucaoPorDocId(docId) {
     try {
-        const docRef = db.collection("ResumoSolucao").doc(docId);
-        const doc = await docRef.get();
-        
-        if (doc.exists) {
-            return { 
-                success: true, 
-                data: { docId: doc.id, ...doc.data() }
-            };
-        } else {
-            return { success: false, error: "Documento não encontrado" };
-        }
-    } catch (error) {
-        console.error("❌ Erro ao obter solução:", error);
-        return { success: false, error: error.message };
-    }
-}
-
-/**
- * ATUALIZAR NOME DA SOLUÇÃO
- * @param {string} docId - ID do documento Firestore
- * @param {string} novoNome - Novo nome da solução
- * @returns {Object} Resultado da operação
- */
-async function atualizarNomeSolucao(docId, novoNome) {
-    try {
-        // Verificar se documento existe
-        const existe = await documentoExiste(docId);
-        if (!existe) {
-            return { success: false, error: "Documento não encontrado" };
-        }
-        
-        const docRef = db.collection("ResumoSolucao").doc(docId);
-        await docRef.update({
-            nome: novoNome,
-            dataAtualizacao: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        
-        console.log(`✅ Nome da solução ${docId} atualizado: ${novoNome}`);
-        return { success: true };
-    } catch (error) {
-        console.error("❌ Erro ao atualizar nome:", error);
-        return { success: false, error: error.message };
-    }
-}
-
-/**
- * ATUALIZAR ÍCONE DA SOLUÇÃO
- * @param {string} docId - ID do documento Firestore
- * @param {string} novoIcone - Novo ícone (emoji)
- * @returns {Object} Resultado da operação
- */
-async function atualizarIconeSolucao(docId, novoIcone) {
-    try {
-        // Verificar se documento existe
-        const existe = await documentoExiste(docId);
-        if (!existe) {
-            return { success: false, error: "Documento não encontrado" };
-        }
-        
-        const docRef = db.collection("ResumoSolucao").doc(docId);
-        await docRef.update({
-            icone: novoIcone,
-            dataAtualizacao: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        
-        console.log(`✅ Ícone da solução ${docId} atualizado: ${novoIcone}`);
-        return { success: true };
-    } catch (error) {
-        console.error("❌ Erro ao atualizar ícone:", error);
-        return { success: false, error: error.message };
-    }
-}
-
-/**
- * OBTER ID DA SOLUÇÃO PELO DOCID
- * @param {string} docId - ID do documento Firestore
- * @returns {string|null} ID da solução (campo 'id')
- */
-async function obterIdDaSolucao(docId) {
-    try {
-        const docRef = db.collection("ResumoSolucao").doc(docId);
-        const doc = await docRef.get();
+        console.log(`🔍 Buscando solução com DocID: ${docId}`);
+        const doc = await db.collection("ResumoSolucao").doc(docId).get();
         
         if (doc.exists) {
             const data = doc.data();
-            return data.id; // Retorna o campo 'id' do documento
+            const resultado = {
+                docId: doc.id,
+                ...data,
+                dataCriacao: data.dataCriacao ? data.dataCriacao.toDate().toISOString() : '',
+                dataAtualizacao: data.dataAtualizacao ? data.dataAtualizacao.toDate().toISOString() : ''
+            };
+            
+            console.log(`✅ Solução encontrada: ${resultado.nome}`);
+            return { success: true, data: resultado };
         } else {
-            console.error("❌ Documento não encontrado:", docId);
-            return null;
+            console.log(`❌ Solução não encontrada: ${docId}`);
+            return { success: false, error: "Solução não encontrada" };
         }
     } catch (error) {
-        console.error("❌ Erro ao obter ID da solução:", error);
-        return null;
+        console.error(`❌ Erro ao obter solução ${docId}:`, error);
+        return { success: false, error: error.message };
     }
 }
 
-/**
- * EXCLUIR DOCUMENTOS DE UMA COLEÇÃO POR IDSOLUCAO
- * @param {string} colecao - Nome da coleção
- * @param {string} solucaoId - ID da solução (campo 'id')
- * @returns {number} Quantidade de documentos deletados
- */
-async function excluirDocumentosPorSolucaoId(colecao, solucaoId) {
+async function atualizarSolucao(docId, dados) {
     try {
-        console.log(`🔍 Buscando documentos em ${colecao} com idSolucao=${solucaoId}`);
+        console.log(`✏️ Atualizando solução ${docId}:`, dados);
         
-        const querySnapshot = await db.collection(colecao)
-            .where("idSolucao", "==", solucaoId)
-            .get();
+        const dadosAtualizacao = {
+            ...dados,
+            dataAtualizacao: firebase.firestore.FieldValue.serverTimestamp()
+        };
         
-        if (querySnapshot.empty) {
-            console.log(`ℹ️ Nenhum documento encontrado em ${colecao}`);
-            return 0;
-        }
+        await db.collection("ResumoSolucao").doc(docId).update(dadosAtualizacao);
+        console.log(`✅ Solução ${docId} atualizada com sucesso`);
+        return { success: true };
+    } catch (error) {
+        console.error(`❌ Erro ao atualizar solução ${docId}:`, error);
+        return { 
+            success: false, 
+            error: error.message,
+            code: error.code 
+        };
+    }
+}
+
+// ============================================================================
+// 4. RECURSOS (TEXTO SIMPLES) - PROBLEMA 01 CORRIGIDO
+// ============================================================================
+
+async function salvarRecursos(idSolucao, textoRecursos) {
+    try {
+        console.log(`💾 Salvando recursos para solução ${idSolucao}`);
+        console.log(`Conteúdo: ${textoRecursos ? textoRecursos.substring(0, 100) + '...' : '(vazio)'}`);
         
-        const batch = db.batch();
-        let contador = 0;
-        
-        querySnapshot.forEach(doc => {
-            batch.delete(doc.ref);
-            contador++;
+        // 1. Limpa registros anteriores deste ID
+        await deletarColecaoPorIdSolucao("RecursosSolucao", idSolucao);
+
+        // 2. Salva o novo texto
+        const docRef = await db.collection("RecursosSolucao").add({
+            idSolucao: idSolucao,
+            recursos: textoRecursos || "", // Aceita string vazia
+            dataRegistro: firebase.firestore.FieldValue.serverTimestamp()
         });
         
-        await batch.commit();
-        console.log(`✅ ${contador} documento(s) excluído(s) de ${colecao}`);
-        return contador;
-        
+        console.log(`✅ Recursos salvos com sucesso! DocID: ${docRef.id}`);
+        return { 
+            success: true, 
+            docId: docRef.id,
+            message: "Recursos salvos com sucesso"
+        };
     } catch (error) {
-        console.error(`❌ Erro ao excluir documentos de ${colecao}:`, error);
-        throw error;
+        console.error(`❌ Erro ao salvar recursos para solução ${idSolucao}:`, error);
+        return { 
+            success: false, 
+            error: error.message,
+            code: error.code
+        };
     }
 }
 
-/**
- * EXCLUIR SOLUÇÃO COMPLETAMENTE
- * @param {string} docId - ID do documento Firestore em ResumoSolucao
- * @returns {Object} Resultado da operação
- */
-async function excluirSolucaoCompleta(docId) {
+async function obterRecursos(idSolucao) {
     try {
-        console.log(`🔍 Iniciando exclusão completa da solução docId=${docId}`);
+        console.log(`🔍 Buscando recursos para solução ${idSolucao}`);
         
-        // 1. Obter a solução para pegar o campo 'id'
-        const solucaoResultado = await obterSolucaoPorDocId(docId);
-        if (!solucaoResultado.success) {
+        const snapshot = await db.collection("RecursosSolucao")
+            .where("idSolucao", "==", idSolucao)
+            .orderBy("dataRegistro", "desc")
+            .limit(1)
+            .get();
+            
+        if (!snapshot.empty) {
+            const doc = snapshot.docs[0];
+            const dados = doc.data();
+            const recursos = dados.recursos || "";
+            
+            console.log(`✅ Recursos encontrados (${recursos.length} caracteres)`);
             return { 
-                success: false, 
-                error: `Solução não encontrada: ${solucaoResultado.error}` 
+                success: true, 
+                data: recursos,
+                docId: doc.id,
+                dataRegistro: dados.dataRegistro ? dados.dataRegistro.toDate().toISOString() : '',
+                message: "Recursos carregados com sucesso"
             };
         }
         
-        const solucaoData = solucaoResultado.data;
-        const solucaoId = solucaoData.id; // Campo 'id' da solução
-        const solucaoNome = solucaoData.nome || "Sem nome";
+        console.log(`ℹ️ Nenhum recurso encontrado para solução ${idSolucao}`);
+        return { 
+            success: true, 
+            data: "",
+            message: "Nenhum recurso cadastrado"
+        };
+    } catch (error) {
+        console.error(`❌ Erro ao obter recursos para solução ${idSolucao}:`, error);
+        return { 
+            success: false, 
+            error: error.message,
+            data: "",
+            code: error.code
+        };
+    }
+}
+
+// ============================================================================
+// 5. CANVAS DE PRODUTO - PROBLEMA 03 CORRIGIDO
+// ============================================================================
+
+async function salvarCanvas(idSolucao, canvasData) {
+    try {
+        console.log(`🎨 Salvando canvas para solução ${idSolucao}`);
+        console.log("Dados recebidos:", canvasData);
         
-        console.log(`📋 Solução encontrada: ${solucaoNome} (id=${solucaoId})`);
-        
-        // 2. Lista de todas as coleções que podem ter documentos relacionados
-        const colecoesParaLimpar = [
-            "RespostasFormulario",
-            "RecursosSolucao", 
-            "PontuacaoSolucao",
-            "CanvasSolucao"
+        // 1. Limpa registros anteriores
+        await deletarColecaoPorIdSolucao("CanvasSolucao", idSolucao);
+
+        // 2. Definir campos esperados (correspondem aos IDs do HTML)
+        const camposCanvas = [
+            'publico-alvo',
+            'problema-resolve', 
+            'formato-solucao',
+            'funcionalidades',
+            'modelo-negocio',
+            'trl-atual',
+            'trl-esperada',
+            'link-prototipo',
+            'link-pitch',
+            'link-pdf',
+            'escalabilidade'
         ];
         
-        let totalExcluidos = 0;
+        // 3. Preparar dados para salvar
+        const dadosParaSalvar = {
+            idSolucao: idSolucao,
+            dataRegistro: firebase.firestore.FieldValue.serverTimestamp()
+        };
         
-        // 3. Excluir documentos relacionados em todas as coleções
-        for (const colecao of colecoesParaLimpar) {
-            try {
-                const excluidos = await excluirDocumentosPorSolucaoId(colecao, solucaoId);
-                totalExcluidos += excluidos;
-            } catch (error) {
-                console.error(`⚠️ Erro ao limpar ${colecao}:`, error);
-                // Continuar com outras coleções mesmo se uma falhar
-            }
-        }
+        // 4. Adicionar cada campo com valor padrão se não existir
+        camposCanvas.forEach(campo => {
+            dadosParaSalvar[campo] = canvasData[campo] || "";
+        });
         
-        // 4. Excluir documento principal da solução
-        await db.collection("ResumoSolucao").doc(docId).delete();
-        console.log(`✅ Documento principal excluído: ${docId}`);
+        console.log("Dados formatados para Firebase:", dadosParaSalvar);
+
+        // 5. Salvar no Firestore
+        const docRef = await db.collection("CanvasSolucao").add(dadosParaSalvar);
         
-        console.log(`🎯 Exclusão completa concluída!`);
-        console.log(`   • Solução: ${solucaoNome}`);
-        console.log(`   • ID da solução: ${solucaoId}`);
-        console.log(`   • Documento Firestore: ${docId}`);
-        console.log(`   • Documentos relacionados excluídos: ${totalExcluidos}`);
+        console.log(`✅ Canvas salvo com sucesso! DocID: ${docRef.id}`);
+        
+        // 6. Logar no console conforme solicitado
+        console.log("📋 === DADOS DO CANVAS SALVOS ===");
+        camposCanvas.forEach(campo => {
+            console.log(`${campo}: ${dadosParaSalvar[campo]}`);
+        });
+        console.log("=================================");
         
         return { 
             success: true, 
-            solucaoId: solucaoId,
-            solucaoNome: solucaoNome,
-            docId: docId,
-            documentosExcluidos: totalExcluidos
+            docId: docRef.id,
+            data: dadosParaSalvar,
+            message: "Canvas salvo com sucesso"
         };
-        
     } catch (error) {
-        console.error("❌ Erro ao excluir solução completa:", error);
+        console.error(`❌ Erro ao salvar canvas para solução ${idSolucao}:`, error);
         return { 
             success: false, 
-            error: error.message 
+            error: error.message,
+            code: error.code
         };
     }
 }
 
-/**
- * VERIFICAR DOCUMENTOS RELACIONADOS (DEBUG)
- * @param {string} solucaoId - ID da solução
- * @returns {Object} Documentos encontrados
- */
-async function verificarDocumentosRelacionados(solucaoId) {
+async function obterCanvas(idSolucao) {
     try {
-        const resultado = {};
-        const colecoes = ["RespostasFormulario", "RecursosSolucao", "PontuacaoSolucao", "CanvasSolucao"];
+        console.log(`🔍 Buscando canvas para solução ${idSolucao}`);
         
-        for (const colecao of colecoes) {
-            const querySnapshot = await db.collection(colecao)
-                .where("idSolucao", "==", solucaoId)
-                .get();
+        const snapshot = await db.collection("CanvasSolucao")
+            .where("idSolucao", "==", idSolucao)
+            .orderBy("dataRegistro", "desc")
+            .limit(1)
+            .get();
+
+        if (!snapshot.empty) {
+            const doc = snapshot.docs[0];
+            const dados = doc.data();
             
-            resultado[colecao] = [];
-            querySnapshot.forEach(doc => {
-                resultado[colecao].push({
-                    docId: doc.id,
-                    ...doc.data()
-                });
-            });
+            console.log(`✅ Canvas encontrado para solução ${idSolucao}`);
+            console.log("Dados do canvas:", dados);
+            
+            return { 
+                success: true, 
+                data: dados,
+                docId: doc.id,
+                dataRegistro: dados.dataRegistro ? dados.dataRegistro.toDate().toISOString() : '',
+                message: "Canvas carregado com sucesso"
+            };
         }
         
-        return { success: true, data: resultado };
-    } catch (error) {
-        console.error("❌ Erro ao verificar documentos:", error);
-        return { success: false, error: error.message };
-    }
-}
-
-// ============================================================================
-// FUNÇÕES PARA DADOS RELACIONADOS
-// ============================================================================
-
-/**
- * SALVAR RESPOSTAS DO FORMULÁRIO
- * @param {string} idSolucao - ID da solução
- * @param {Object} respostas - Dados do formulário
- */
-async function salvarRespostasFormulario(idSolucao, respostas) {
-    try {
-        const dados = {
-            idSolucao: idSolucao,
-            respostas: respostas,
-            dataRegistro: firebase.firestore.FieldValue.serverTimestamp()
+        console.log(`ℹ️ Nenhum canvas encontrado para solução ${idSolucao}`);
+        return { 
+            success: true, 
+            data: {},
+            message: "Nenhum canvas cadastrado"
         };
-        
-        await db.collection("RespostasFormulario").add(dados);
-        return { success: true };
     } catch (error) {
-        return { success: false, error: error.message };
-    }
-}
-
-/**
- * SALVAR RECURSOS
- * @param {string} idSolucao - ID da solução
- * @param {Array} recursos - Lista de recursos
- */
-async function salvarRecursos(idSolucao, recursos) {
-    try {
-        const dados = {
-            idSolucao: idSolucao,
-            recursos: recursos,
-            dataRegistro: firebase.firestore.FieldValue.serverTimestamp()
+        console.error(`❌ Erro ao obter canvas para solução ${idSolucao}:`, error);
+        return { 
+            success: false, 
+            error: error.message,
+            data: {},
+            code: error.code
         };
-        
-        await db.collection("RecursosSolucao").add(dados);
-        return { success: true };
-    } catch (error) {
-        return { success: false, error: error.message };
-    }
-}
-
-/**
- * SALVAR PONTUAÇÃO
- * @param {string} idSolucao - ID da solução
- * @param {number} killSwitch - Pontuação kill switch
- * @param {Array} matrizPositiva - Valores matriz positiva
- * @param {Array} matrizNegativa - Valores matriz negativa
- * @param {number} score - Score final
- */
-async function salvarPontuacao(idSolucao, killSwitch, matrizPositiva, matrizNegativa, score) {
-    try {
-        const dados = {
-            idSolucao: idSolucao,
-            killSwitch: killSwitch,
-            matrizPositiva: matrizPositiva,
-            matrizNegativa: matrizNegativa,
-            score: score,
-            dataRegistro: firebase.firestore.FieldValue.serverTimestamp()
-        };
-        
-        await db.collection("PontuacaoSolucao").add(dados);
-        return { success: true };
-    } catch (error) {
-        return { success: false, error: error.message };
-    }
-}
-
-/**
- * SALVAR CANVAS
- * @param {string} idSolucao - ID da solução
- * @param {Object} canvasData - Dados do canvas
- */
-async function salvarCanvas(idSolucao, canvasData) {
-    try {
-        const dados = {
-            idSolucao: idSolucao,
-            ...canvasData,
-            dataRegistro: firebase.firestore.FieldValue.serverTimestamp()
-        };
-        
-        await db.collection("CanvasSolucao").add(dados);
-        return { success: true };
-    } catch (error) {
-        return { success: false, error: error.message };
     }
 }
 
 // ============================================================================
-// EXPORTAÇÃO DAS FUNÇÕES
+// 6. EXCLUSÃO E UTILITÁRIOS
 // ============================================================================
 
-window.BancoDeDados = {
-    // Funções principais
-    adicionarSolucao,
-    listarSolucoes,
-    obterSolucaoPorDocId,
-    atualizarNomeSolucao,
-    atualizarIconeSolucao,
-    excluirSolucaoCompleta,
-    obterIdDaSolucao,
-    verificarDocumentosRelacionados,
-    documentoExiste,
-    
-    // Funções de dados relacionados
-    salvarRespostasFormulario,
-    salvarRecursos,
-    salvarPontuacao,
-    salvarCanvas,
-    
-    // Utilitários
-    generateId,
-    db
-};
-
-console.log("🔥 Firebase configurado para SASGP - Versão corrigida");
-
-// ============================================================================
-// FUNÇÕES PARA AVALIAÇÕES
-// ============================================================================
-
-/**
- * SALVAR AVALIAÇÃO
- * @param {string} idSolucao - ID da solução
- * @param {Object} avaliacao - Dados da avaliação
- */
-async function salvarAvaliacao(idSolucao, avaliacao) {
+// Exclusão completa (Cascata)
+async function excluirSolucaoCompleta(docId, idInterno) {
     try {
-        const dados = {
-            idSolucao: idSolucao,
-            ...avaliacao,
-            dataRegistro: firebase.firestore.FieldValue.serverTimestamp()
-        };
+        console.log("🗑️ Iniciando exclusão completa da solução...");
+        console.log(`DocID: ${docId}, ID Interno: ${idInterno}`);
         
-        const docRef = await db.collection("avaliacoes").add(dados);
-        return { success: true, id: docRef.id };
+        // Se tivermos o ID interno, limpamos as coleções filhas
+        if (idInterno) {
+            console.log("🧹 Limpando coleções filhas...");
+            await deletarColecaoPorIdSolucao("RecursosSolucao", idInterno);
+            await deletarColecaoPorIdSolucao("CanvasSolucao", idInterno);
+            await deletarColecaoPorIdSolucao("PontuacaoSolucao", idInterno); // Limpeza de legado
+            console.log("✅ Coleções filhas limpas");
+        }
+
+        // Exclui o documento pai
+        console.log(`🗑️ Excluindo documento principal ${docId}...`);
+        await db.collection("ResumoSolucao").doc(docId).delete();
+        
+        console.log("✅ Solução excluída completamente");
+        return { 
+            success: true, 
+            message: "Solução excluída com sucesso" 
+        };
     } catch (error) {
-        console.error("❌ Erro ao salvar avaliação:", error);
-        return { success: false, error: error.message };
+        console.error("❌ Erro na exclusão completa:", error);
+        return { 
+            success: false, 
+            error: error.message,
+            code: error.code
+        };
     }
 }
 
-/**
- * LISTAR AVALIAÇÕES POR SOLUÇÃO
- * @param {string} idSolucao - ID da solução
- */
+// Exclusão Simples (Fallback)
+async function excluirSolucao(docId) {
+    try {
+        console.log(`🗑️ Excluindo solução ${docId}...`);
+        await db.collection("ResumoSolucao").doc(docId).delete();
+        
+        console.log("✅ Solução excluída");
+        return { 
+            success: true, 
+            message: "Solução excluída com sucesso" 
+        };
+    } catch (error) {
+        console.error(`❌ Erro ao excluir solução ${docId}:`, error);
+        return { 
+            success: false, 
+            error: error.message,
+            code: error.code
+        };
+    }
+}
+
+// ============================================================================
+// 7. FUNÇÕES DE AVALIAÇÃO (para compatibilidade)
+// ============================================================================
+
 async function listarAvaliacoes(idSolucao) {
     try {
-        const querySnapshot = await db.collection("avaliacoes")
+        console.log(`⭐ Listando avaliações para solução ${idSolucao}`);
+        
+        const snapshot = await db.collection("Avaliacoes")
             .where("idSolucao", "==", idSolucao)
             .orderBy("dataRegistro", "desc")
             .get();
-        
-        const avaliacoes = [];
-        querySnapshot.forEach((doc) => {
-            avaliacoes.push({ 
+            
+        const lista = [];
+        snapshot.forEach((doc) => {
+            const data = doc.data();
+            lista.push({
                 docId: doc.id,
-                ...doc.data()
+                ...data,
+                dataRegistro: data.dataRegistro ? data.dataRegistro.toDate().toISOString() : ''
             });
         });
         
-        return { success: true, data: avaliacoes };
+        console.log(`✅ ${lista.length} avaliação(ões) encontrada(s)`);
+        return { 
+            success: true, 
+            data: lista,
+            message: "Avaliações carregadas com sucesso"
+        };
     } catch (error) {
-        console.error("❌ Erro ao listar avaliações:", error);
-        return { success: false, error: error.message };
+        console.error(`❌ Erro ao listar avaliações para solução ${idSolucao}:`, error);
+        return { 
+            success: false, 
+            error: error.message,
+            data: [],
+            code: error.code
+        };
     }
 }
 
-// ============================================================================
-// FUNÇÕES PARA RELATÓRIOS (HISTÓRICO)
-// ============================================================================
-
-/**
- * SALVAR RELATÓRIO
- * @param {string} idSolucao - ID da solução
- * @param {Object} relatorio - Dados do relatório
- */
-async function salvarRelatorio(idSolucao, relatorio) {
+async function salvarAvaliacao(idSolucao, avaliacaoData) {
     try {
-        const dados = {
+        console.log(`⭐ Salvando avaliação para solução ${idSolucao}`);
+        
+        const dadosCompletos = {
             idSolucao: idSolucao,
-            ...relatorio,
+            avaliador: avaliacaoData.avaliador || "Anônimo",
+            estrelas: avaliacaoData.estrelas || 0,
+            comentario: avaliacaoData.comentario || "",
             dataRegistro: firebase.firestore.FieldValue.serverTimestamp()
         };
         
-        const docRef = await db.collection("relatorios").add(dados);
-        return { success: true, id: docRef.id };
+        const docRef = await db.collection("Avaliacoes").add(dadosCompletos);
+        
+        console.log(`✅ Avaliação salva com sucesso! DocID: ${docRef.id}`);
+        return { 
+            success: true, 
+            docId: docRef.id,
+            message: "Avaliação salva com sucesso"
+        };
     } catch (error) {
-        console.error("❌ Erro ao salvar relatório:", error);
-        return { success: false, error: error.message };
+        console.error(`❌ Erro ao salvar avaliação para solução ${idSolucao}:`, error);
+        return { 
+            success: false, 
+            error: error.message,
+            code: error.code
+        };
     }
 }
 
-/**
- * LISTAR RELATÓRIOS POR SOLUÇÃO
- * @param {string} idSolucao - ID da solução
- */
-async function listarRelatorios(idSolucao) {
-    try {
-        const querySnapshot = await db.collection("relatorios")
-            .where("idSolucao", "==", idSolucao)
-            .orderBy("dataRegistro", "desc")
-            .get();
-        
-        const relatorios = [];
-        querySnapshot.forEach((doc) => {
-            relatorios.push({ 
-                docId: doc.id,
-                ...doc.data()
-            });
-        });
-        
-        return { success: true, data: relatorios };
-    } catch (error) {
-        console.error("❌ Erro ao listar relatórios:", error);
-        return { success: false, error: error.message };
-    }
-}
-
-/**
- * EXCLUIR RELATÓRIO
- * @param {string} docId - ID do documento do relatório
- */
 async function excluirRelatorio(docId) {
     try {
-        await db.collection("relatorios").doc(docId).delete();
-        return { success: true };
+        console.log(`🗑️ Excluindo avaliação ${docId}...`);
+        await db.collection("Avaliacoes").doc(docId).delete();
+        
+        console.log("✅ Avaliação excluída");
+        return { 
+            success: true, 
+            message: "Avaliação excluída com sucesso" 
+        };
     } catch (error) {
-        console.error("❌ Erro ao excluir relatório:", error);
-        return { success: false, error: error.message };
+        console.error(`❌ Erro ao excluir avaliação ${docId}:`, error);
+        return { 
+            success: false, 
+            error: error.message,
+            code: error.code
+        };
     }
 }
 
-// ============================================================================
-// FUNÇÕES PARA STATUS DA SOLUÇÃO
-// ============================================================================
-
-/**
- * ATUALIZAR STATUS DA SOLUÇÃO
- * @param {string} docId - ID do documento Firestore
- * @param {string} status - Novo status
- */
-async function atualizarStatusSolucao(docId, status) {
+async function atualizarStatusSolucao(docId, novoStatus) {
     try {
-        const docRef = db.collection("ResumoSolucao").doc(docId);
-        await docRef.update({
-            status: status,
+        console.log(`🔄 Atualizando status da solução ${docId} para: ${novoStatus}`);
+        
+        await db.collection("ResumoSolucao").doc(docId).update({
+            status: novoStatus,
             dataAtualizacao: firebase.firestore.FieldValue.serverTimestamp()
         });
         
-        console.log(`✅ Status da solução ${docId} atualizado: ${status}`);
-        return { success: true };
+        console.log("✅ Status atualizado com sucesso");
+        return { 
+            success: true, 
+            message: "Status atualizado com sucesso" 
+        };
     } catch (error) {
-        console.error("❌ Erro ao atualizar status:", error);
-        return { success: false, error: error.message };
-    }
-}
-
-/**
- * OBTER STATUS DA SOLUÇÃO
- * @param {string} docId - ID do documento Firestore
- */
-async function obterStatusSolucao(docId) {
-    try {
-        const docRef = db.collection("ResumoSolucao").doc(docId);
-        const doc = await docRef.get();
-        
-        if (doc.exists) {
-            const data = doc.data();
-            return { 
-                success: true, 
-                status: data.status || "" 
-            };
-        } else {
-            return { success: false, error: "Documento não encontrado" };
-        }
-    } catch (error) {
-        console.error("❌ Erro ao obter status:", error);
-        return { success: false, error: error.message };
+        console.error(`❌ Erro ao atualizar status da solução ${docId}:`, error);
+        return { 
+            success: false, 
+            error: error.message,
+            code: error.code
+        };
     }
 }
 
 // ============================================================================
-// EXPORTAÇÃO DAS NOVAS FUNÇÕES
+// 8. EXPORTAÇÃO GLOBAL
 // ============================================================================
-
-// Atualizar o objeto BancoDeDados:
 window.BancoDeDados = {
-    // ... funções existentes ...
+    // Referência do Firestore
+    db,
     
-    // Novas funções:
-    salvarAvaliacao,
+    // Soluções (CRUD Principal)
+    adicionarSolucao,
+    listarSolucoes,
+    obterSolucaoPorDocId,
+    atualizarSolucao,
+    excluirSolucao,
+    excluirSolucaoCompleta,
+    
+    // Recursos (PROBLEMA 01)
+    salvarRecursos,
+    obterRecursos,
+    
+    // Canvas (PROBLEMA 03)
+    salvarCanvas,
+    obterCanvas,
+    
+    // Avaliações
     listarAvaliacoes,
-    salvarRelatorio,
-    listarRelatorios,
+    salvarAvaliacao,
     excluirRelatorio,
     atualizarStatusSolucao,
-    obterStatusSolucao,
     
-    // ... resto das funções existentes ...
+    // Funções de compatibilidade (legado)
+    salvarPontuacao: async function(idSolucao, k, mp, mn, s) { 
+        console.log("⚠️ Função de compatibilidade: salvarPontuacao");
+        return { success: true, message: "Pontuação agora salva no resumo da solução" };
+    },
+    
+    obterPontuacao: async function(idSolucao) { 
+        console.log("⚠️ Função de compatibilidade: obterPontuacao");
+        return { 
+            success: false, 
+            error: "Use obterSolucaoPorDocId para obter dados completos" 
+        };
+    },
+    
+    // Utilitário para debug
+    debug: {
+        listarColecoes: async function() {
+            try {
+                const colecoes = ["ResumoSolucao", "RecursosSolucao", "CanvasSolucao", "Avaliacoes"];
+                const resultados = {};
+                
+                for (const colecao of colecoes) {
+                    const snapshot = await db.collection(colecao).limit(5).get();
+                    resultados[colecao] = snapshot.size;
+                }
+                
+                console.log("📊 Estatísticas das coleções:", resultados);
+                return resultados;
+            } catch (error) {
+                console.error("❌ Erro ao listar coleções:", error);
+                return { error: error.message };
+            }
+        }
+    }
 };
+
+console.log("✅ Banco de Dados SASGP carregado com sucesso!");
+console.log("📊 Coleções disponíveis: ResumoSolucao, RecursosSolucao, CanvasSolucao, Avaliacoes");

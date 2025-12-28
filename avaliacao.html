@@ -3,104 +3,217 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Avaliar Solução - SASGP</title>
+    <title>Avaliação de Solução - SASGP</title>
     <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
     <script src="banco.js" defer></script>
-    <script src="script-avaliacao.js" defer></script>
+    <script src="utilitarios.js" defer></script>
+    <script src="avaliacao.js" defer></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1 id="tituloSolucao">Avaliar Solução</h1>
-            <p class="subtitle">Sistema de avaliação e acompanhamento</p>
+    <div class="container avaliacao-container">
+        <header class="avaliacao-header">
+            <div>
+                <h1 id="pageTitle">Avaliação de Solução</h1>
+                <p class="subtitle" id="pageSubtitle">Carregando...</p>
+            </div>
+            <button class="btn btn-secondary" id="btnVoltar">
+                ← Voltar ao Início
+            </button>
         </header>
         
-        <!-- Status da Solução -->
-        <div class="status-container">
-            <label for="statusSelect">Status da solução:</label>
-            <select id="statusSelect" class="status-select">
-                <option value="">Selecione o status...</option>
-                <option value="aprovada-execucao">Aprovada em Execução</option>
-                <option value="aprovada-aguardando">Aprovada aguardando execução</option>
-                <option value="em-analise">Em análise</option>
-                <option value="arquivada">Arquivada</option>
-                <option value="reprovada">Reprovada</option>
-            </select>
-        </div>
-        
-        <!-- Média de Estrelas -->
-        <div class="media-estrelas-container">
-            <div class="header-laranja">
-                <h3>Média de Avaliações</h3>
-                <div class="estrelas-media" id="estrelasMedia">
-                    ⭐⭐⭐⭐⭐
+        <main>
+            <!-- Informações da solução -->
+            <div class="avaliacao-info-grid">
+                <div class="info-card">
+                    <h3>Nome da Solução</h3>
+                    <p id="infoNome">Carregando...</p>
+                </div>
+                <div class="info-card">
+                    <h3>Tipo</h3>
+                    <p id="infoTipo">Carregando...</p>
+                </div>
+                <div class="info-card">
+                    <h3>Data de Criação</h3>
+                    <p id="infoData">Carregando...</p>
+                </div>
+                <div class="info-card">
+                    <h3>Score</h3>
+                    <p id="infoScore">Carregando...</p>
                 </div>
             </div>
-        </div>
-        
-        <!-- Grid de Avaliações -->
-        <main>
-            <div class="avaliacoes-header">
-                <h2>Avaliações</h2>
-                <button class="btn btn-primary" id="btnNovaAvaliacao">
-                    <span>+</span> Nova Avaliação
+            
+            <!-- Controle de status -->
+            <div class="status-selector">
+                <div class="status-indicator" id="statusIndicator">
+                    <div class="status-dot"></div>
+                    <span class="status-text">Status</span>
+                </div>
+                <select id="statusSelect" class="filter-select">
+                    <option value="">Selecione um status</option>
+                    <option value="em-analise">Em análise</option>
+                    <option value="aprovada-aguardando">Aprovada aguardando execução</option>
+                    <option value="aprovada-execucao">Aprovada em Execução</option>
+                    <option value="arquivada">Arquivada</option>
+                    <option value="reprovada">Reprovada</option>
+                </select>
+            </div>
+            
+            <!-- Filtros -->
+            <div class="filters-container">
+                <select id="filtroAvaliador" class="filter-select">
+                    <option value="">Todos os avaliadores</option>
+                    <option value="Comitê de Inovação">Comitê de Inovação</option>
+                    <option value="Diretoria">Diretoria</option>
+                    <option value="Equipe Técnica">Equipe Técnica</option>
+                    <option value="Cliente">Cliente</option>
+                </select>
+                <select id="filtroEstrelas" class="filter-select">
+                    <option value="">Todas as estrelas</option>
+                    <option value="5">5 estrelas</option>
+                    <option value="4">4 estrelas</option>
+                    <option value="3">3 estrelas</option>
+                    <option value="2">2 estrelas</option>
+                    <option value="1">1 estrela</option>
+                </select>
+            </div>
+            
+            <!-- Resumo das avaliações -->
+            <div class="rating-summary">
+                <h3>Avaliação Média</h3>
+                <div class="average-stars" id="estrelasMedia">☆☆☆☆☆</div>
+                <div class="average-value" id="mediaValor">0.0</div>
+                <div class="average-count" id="mediaContador">0 avaliações</div>
+            </div>
+            
+            <!-- Lista de avaliações -->
+            <div class="avaliacoes-grid" id="gridAvaliacoes">
+                <!-- As avaliações serão carregadas aqui -->
+            </div>
+            
+            <!-- Estado quando não há avaliações -->
+            <div class="sem-avaliacoes" id="semAvaliacoes" style="display: none;">
+                <h3>Nenhuma avaliação encontrada</h3>
+                <p>Seja o primeiro a avaliar esta solução!</p>
+                <button class="btn btn-primary" id="btnPrimeiraAvaliacao">
+                    ⭐ Avaliar Solução
                 </button>
             </div>
             
-            <div class="grid-avaliacoes" id="avaliacoesGrid">
-                <!-- Avaliações serão carregadas aqui -->
+            <!-- Botões de ação -->
+            <div class="btn-container">
+                <button class="btn btn-primary" id="btnNovaAvaliacao">
+                    ⭐ Nova Avaliação
+                </button>
             </div>
         </main>
-        
-        <div class="btn-container">
-            <button class="btn btn-secondary" id="btnVoltar">← Voltar</button>
-        </div>
     </div>
     
-    <!-- Popup Nova Avaliação -->
-    <div id="popupNovaAvaliacao" class="popup-overlay">
-        <div class="popup-content">
-            <h3>Nova Avaliação</h3>
-            
+    <!-- Modal Nova Avaliação -->
+    <div class="modal" id="modalNovaAvaliacao">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Nova Avaliação</h3>
+                <button class="close-modal" id="fecharModal">&times;</button>
+            </div>
             <div class="form-group">
-                <label for="avaliadorSelect">Avaliador</label>
-                <select id="avaliadorSelect" class="form-control">
-                    <option value="">Selecione o avaliador...</option>
-                    <option value="Simone">Simone</option>
-                    <option value="Gabriel">Gabriel</option>
-                    <option value="Diego">Diego</option>
-                    <option value="Emily">Emily</option>
-                    <option value="Tandero">Tandero</option>
+                <label for="avaliador">Avaliador</label>
+                <select id="avaliador" class="form-control">
+                    <option value="">Selecione um avaliador</option>
+                    <option value="Comitê de Inovação">Comitê de Inovação</option>
+                    <option value="Diretoria">Diretoria</option>
+                    <option value="Equipe Técnica">Equipe Técnica</option>
+                    <option value="Cliente">Cliente</option>
+                    <option value="Outro">Outro</option>
                 </select>
             </div>
             
             <div class="form-group">
-                <label for="comentarioAvaliacao">Comentário</label>
-                <textarea id="comentarioAvaliacao" 
-                          class="form-control"
-                          placeholder="Escreva os comentários da avaliação..."
-                          rows="5"></textarea>
+                <label class="rating-label" id="ratingLabel">Selecione de 1 a 5 estrelas</label>
+                <div class="estrelas-container">
+                    <div class="estrela" data-value="1">☆</div>
+                    <div class="estrela" data-value="2">☆</div>
+                    <div class="estrela" data-value="3">☆</div>
+                    <div class="estrela" data-value="4">☆</div>
+                    <div class="estrela" data-value="5">☆</div>
+                </div>
+                <input type="hidden" id="ratingValue" value="0">
             </div>
             
             <div class="form-group">
-                <label>Estrelas (1 a 5)</label>
-                <div class="estrelas-selecao">
-                    <span class="estrela" data-value="1">☆</span>
-                    <span class="estrela" data-value="2">☆</span>
-                    <span class="estrela" data-value="3">☆</span>
-                    <span class="estrela" data-value="4">☆</span>
-                    <span class="estrela" data-value="5">☆</span>
+                <label for="comentario">Comentário</label>
+                <textarea id="comentario" class="form-control" rows="4" maxlength="500" 
+                          placeholder="Descreva sua avaliação..."></textarea>
+                <div class="char-counter">
+                    <span id="charCount">0</span>/500 caracteres
                 </div>
-                <input type="hidden" id="estrelasValue" value="0">
             </div>
             
-            <div class="popup-buttons">
-                <button class="btn btn-cancel" id="btnCancelarAvaliacao">Cancelar</button>
-                <button class="btn btn-primary" id="btnSalvarAvaliacao">Salvar Avaliação</button>
+            <div class="form-group">
+                <label for="dataAvaliacao">Data da Avaliação</label>
+                <input type="date" id="dataAvaliacao" class="form-control">
+            </div>
+            
+            <div class="modal-buttons">
+                <button type="button" class="btn btn-secondary" id="cancelarAvaliacao">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="salvarAvaliacao">
+                    💾 Salvar Avaliação
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Detalhes da Avaliação -->
+    <div class="modal" id="modalDetalhesAvaliacao">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Detalhes da Avaliação</h3>
+                <button class="close-modal" id="fecharDetalhes">&times;</button>
+            </div>
+            <div class="detalhes-avaliacao">
+                <div class="detalhes-item">
+                    <label>Avaliador</label>
+                    <p id="detalhesAvaliador">Carregando...</p>
+                </div>
+                <div class="detalhes-item">
+                    <label>Data</label>
+                    <p id="detalhesData">Carregando...</p>
+                </div>
+                <div class="detalhes-item">
+                    <label>Avaliação</label>
+                    <p id="detalhesEstrelas">☆☆☆☆☆</p>
+                </div>
+                <div class="detalhes-item">
+                    <label>Comentário</label>
+                    <p id="detalhesComentario">Carregando...</p>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="fecharDetalhesBtn">Fechar</button>
+                <button class="btn btn-primary" id="excluirAvaliacao" style="background: #FF4444;">
+                    🗑️ Excluir Avaliação
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Confirmação de Exclusão -->
+    <div class="modal" id="modalConfirmacao">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Confirmar Exclusão</h3>
+                <button class="close-modal" id="fecharConfirmacao">&times;</button>
+            </div>
+            <div class="confirmacao-texto">
+                Tem certeza que deseja excluir esta avaliação? Esta ação não pode ser desfeita.
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="cancelarExclusao">Cancelar</button>
+                <button class="btn btn-primary" id="confirmarExclusao" style="background: #FF4444;">
+                    🗑️ Excluir
+                </button>
             </div>
         </div>
     </div>

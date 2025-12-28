@@ -1,35 +1,65 @@
-// ============================================================================
-// SISTEMA DE GERENCIAMENTO DE SOLUÇÕES SASGP
-// ============================================================================
-// Arquivo principal com todas as funcionalidades JavaScript
-// ============================================================================
+// script.js - Sistema de Gerenciamento de Soluções SASGP
+// VERSÃO COMPLETA CORRIGIDA - Resolve TODOS os problemas
 
-// ==============================
-// CONFIGURAÇÕES GLOBAIS E CONSTANTES
-// ==============================
-
+// ============================================================================
+// 1. CONFIGURAÇÕES GLOBAIS E ESTADO
+// ============================================================================
 let currentSolutionId = null;
 let currentSolutionDocId = null;
+let editMode = false;
 let currentStep = 0;
-let formData = {};
-let recursosData = [];
-let pontuacaoData = {};
-let canvasData = {};
-let rightClickedSolutionDocId = null;
-let rightClickedSolutionId = null;
+let isSaving = false; // Flag para evitar salvamentos simultâneos
+
+// Estado dos dados - CORRIGIDO: Chaves correspondem aos IDs do HTML
+let formData = {
+    nomeSolucao: '',
+    descricaoSolucao: '',
+    tipoSolucao: ''
+};
+
+let recursosTexto = '';
+let pontuacaoData = {
+    killSwitch: 0,
+    matrizPositiva: [1, 1, 1, 1],
+    matrizNegativa: [1, 1, 1],
+    score: 0
+};
+
+// CanvasData com nomes IDENTICOS aos IDs do HTML
+let canvasData = {
+    'publico-alvo': '',
+    'problema-resolve': '',
+    'formato-solucao': '',
+    'funcionalidades': '',
+    'modelo-negocio': '',
+    'trl-atual': '',
+    'trl-esperada': '',
+    'link-prototipo': '',
+    'link-pitch': '',
+    'link-pdf': '',
+    'escalabilidade': ''
+};
+
+let solucaoAtual = null;
+let tempSolutionId = null; // ID temporário durante criação
 
 const totalSteps = 4;
 const cores = ['laranja', 'azul', 'roxo'];
 const iconsList = ['🤖','🦄','🧠','👩🏼‍🦰','👨🏼‍🦰','🏃🏼‍♀️','💪🏼','🎮','🏆','🧩','🛠️','📑','📊','🚀','🌎','🔥','💡'];
-const avaliadoresList = ['Simone', 'Gabriel', 'Diego', 'Emily', 'Tandero'];
 
 // ============================================================================
-// INICIALIZAÇÃO DO SISTEMA
+// 2. INICIALIZAÇÃO (ROTEAMENTO)
 // ============================================================================
-
 document.addEventListener('DOMContentLoaded', function() {
-    const page = getCurrentPage();
+    console.log('🚀 Sistema SASGP inicializando...');
     
+    const page = getCurrentPage();
+    console.log(`📄 Página atual: ${page}`);
+    
+    // Configurar tooltips
+    initTooltips();
+    
+    // Roteamento baseado na página
     switch(page) {
         case 'index.html':
         case '':
@@ -47,289 +77,49 @@ document.addEventListener('DOMContentLoaded', function() {
         case 'canvas.html':
             initCanvasPage();
             break;
-        case 'avaliacao.html':
-            initAvaliacaoPage();
-            break;
-        case 'historico.html':
-            initHistoricoPage();
-            break;
+        default:
+            console.log(`ℹ️ Página não mapeada: ${page}`);
     }
-    
-    initTooltips();
 });
-
-// ============================================================================
-// FUNÇÕES UTILITÁRIAS
-// ============================================================================
 
 function getCurrentPage() {
     const path = window.location.pathname;
     return path.split('/').pop() || 'index.html';
 }
 
-function generateId() {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2);
-}
-
 function showLoading(element) {
-    element.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+    if (element) {
+        element.innerHTML = `
+            <div class="loading-state">
+                <div class="spinner"></div>
+                <p>Carregando...</p>
+            </div>
+        `;
+    }
 }
 
 function showError(element, message) {
-    element.innerHTML = `<p class="error">${message}</p>`;
+    if (element) {
+        element.innerHTML = `
+            <div class="error-state">
+                <div class="error-icon">❌</div>
+                <p class="error">${message}</p>
+                <button class="btn btn-secondary" onclick="window.location.reload()">
+                    Tentar novamente
+                </button>
+            </div>
+        `;
+    }
 }
 
 // ============================================================================
-// PÁGINA INICIAL (index.html) - MENU DE CONTEXTO ATUALIZADO
+// 3. PÁGINA INICIAL (INDEX)
 // ============================================================================
 
-function initIndexPage() {
-    carregarSolucoes();
+async function initIndexPage() {
+    console.log('🏠 Inicializando página inicial...');
+    await carregarSolucoes();
     setupContextMenuListeners();
-}
-
-function setupContextMenuListeners() {
-    document.addEventListener('click', function() {
-        document.getElementById('contextMenu').style.display = 'none';
-    });
-
-    document.getElementById('ctxRename').addEventListener('click', openRenamePopup);
-    document.getElementById('ctxIcon').addEventListener('click', openIconPopup);
-    document.getElementById('ctxAvaliar').addEventListener('click', abrirAvaliacao);
-    document.getElementById('ctxHistorico').addEventListener('click', abrirHistorico);
-    document.getElementById('ctxDelete').addEventListener('click', openDeletePopup);
-
-    setupPopupActions();
-}
-
-// NOVAS FUNÇÕES PARA MENU DE CONTEXTO
-function abrirAvaliacao() {
-    if (rightClickedSolutionDocId && rightClickedSolutionId) {
-        // Salvar IDs para uso na página de avaliação
-        localStorage.setItem('avaliacaoSolutionDocId', rightClickedSolutionDocId);
-        localStorage.setItem('avaliacaoSolutionId', rightClickedSolutionId);
-        window.location.href = `avaliacao.html?id=${rightClickedSolutionId}`;
-    }
-}
-
-function abrirHistorico() {
-    if (rightClickedSolutionDocId && rightClickedSolutionId) {
-        // Salvar IDs para uso na página de histórico
-        localStorage.setItem('historicoSolutionDocId', rightClickedSolutionDocId);
-        localStorage.setItem('historicoSolutionId', rightClickedSolutionId);
-        window.location.href = `historico.html?id=${rightClickedSolutionId}`;
-    }
-}
-
-function setupPopupActions() {
-    // Configurações anteriores (rename, icon, delete) mantidas
-    document.getElementById('btnCancelRename').addEventListener('click', () => {
-        closePopup('popupRename');
-    });
-    
-    document.getElementById('btnSaveRename').addEventListener('click', async () => {
-        const newName = document.getElementById('inputNewName').value.trim();
-        
-        if (newName && rightClickedSolutionDocId) {
-            console.log(`📝 Renomeando solução ${rightClickedSolutionDocId} para: ${newName}`);
-            
-            document.getElementById('btnSaveRename').textContent = 'Salvando...';
-            document.getElementById('btnSaveRename').disabled = true;
-            
-            try {
-                const resultado = await BancoDeDados.atualizarNomeSolucao(
-                    rightClickedSolutionDocId, 
-                    newName
-                );
-                
-                if (resultado.success) {
-                    showNotification('Nome atualizado com sucesso!', 'success');
-                    closePopup('popupRename');
-                    carregarSolucoes();
-                } else {
-                    throw new Error(resultado.error || 'Erro desconhecido');
-                }
-            } catch (error) {
-                console.error('❌ Erro ao renomear:', error);
-                showNotification('Erro ao atualizar nome. Tente novamente.', 'error');
-            } finally {
-                document.getElementById('btnSaveRename').textContent = 'Salvar';
-                document.getElementById('btnSaveRename').disabled = false;
-            }
-        } else {
-            showNotification('Digite um nome válido', 'warning');
-        }
-    });
-    
-    // Popup Mudar Ícone (mantido)
-    document.getElementById('btnCancelIcon').addEventListener('click', () => {
-        closePopup('popupIcon');
-    });
-    
-    document.getElementById('btnSaveIcon').addEventListener('click', async () => {
-        const selectedIcon = document.querySelector('.icon-option.selected');
-        
-        if (selectedIcon && rightClickedSolutionDocId) {
-            const novoIcone = selectedIcon.textContent;
-            
-            document.getElementById('btnSaveIcon').textContent = 'Salvando...';
-            document.getElementById('btnSaveIcon').disabled = true;
-            
-            try {
-                const resultado = await BancoDeDados.atualizarIconeSolucao(
-                    rightClickedSolutionDocId, 
-                    novoIcone
-                );
-                
-                if (resultado.success) {
-                    showNotification('Ícone atualizado com sucesso!', 'success');
-                    closePopup('popupIcon');
-                    carregarSolucoes();
-                } else {
-                    throw new Error(resultado.error || 'Erro desconhecido');
-                }
-            } catch (error) {
-                console.error('❌ Erro ao atualizar ícone:', error);
-                showNotification('Erro ao atualizar ícone. Tente novamente.', 'error');
-            } finally {
-                document.getElementById('btnSaveIcon').textContent = 'Salvar';
-                document.getElementById('btnSaveIcon').disabled = false;
-            }
-        } else {
-            showNotification('Selecione um ícone', 'warning');
-        }
-    });
-    
-    // Popup Excluir (mantido)
-    document.getElementById('btnCancelDelete').addEventListener('click', () => {
-        closePopup('popupDelete');
-    });
-    
-    document.getElementById('btnConfirmDelete').addEventListener('click', async () => {
-        if (rightClickedSolutionDocId) {
-            console.log(`🗑️ Iniciando exclusão da solução ${rightClickedSolutionDocId}`);
-            
-            const btnConfirm = document.getElementById('btnConfirmDelete');
-            const btnCancel = document.getElementById('btnCancelDelete');
-            
-            btnConfirm.textContent = 'Excluindo...';
-            btnConfirm.disabled = true;
-            btnCancel.disabled = true;
-            
-            try {
-                const resultado = await BancoDeDados.excluirSolucaoCompleta(
-                    rightClickedSolutionDocId
-                );
-                
-                if (resultado.success) {
-                    showNotification('Solução excluída com sucesso!', 'success');
-                    closePopup('popupDelete');
-                    carregarSolucoes();
-                } else {
-                    throw new Error(resultado.error || 'Erro desconhecido');
-                }
-            } catch (error) {
-                console.error('❌ Erro ao excluir solução:', error);
-                showNotification('Erro ao excluir solução. Tente novamente.', 'error');
-            } finally {
-                btnConfirm.textContent = 'Apagar';
-                btnConfirm.disabled = false;
-                btnCancel.disabled = false;
-            }
-        }
-    });
-}
-
-function openRenamePopup() {
-    document.getElementById('popupRename').style.display = 'flex';
-    document.getElementById('inputNewName').value = '';
-    document.getElementById('inputNewName').focus();
-}
-
-function openIconPopup() {
-    const grid = document.getElementById('iconGrid');
-    grid.innerHTML = '';
-    
-    iconsList.forEach(icon => {
-        const el = document.createElement('div');
-        el.className = 'icon-option';
-        el.textContent = icon;
-        el.addEventListener('click', () => {
-            document.querySelectorAll('.icon-option').forEach(i => i.classList.remove('selected'));
-            el.classList.add('selected');
-        });
-        grid.appendChild(el);
-    });
-    
-    const defaultIcon = grid.querySelector('.icon-option:last-child');
-    if (defaultIcon) defaultIcon.classList.add('selected');
-
-    document.getElementById('popupIcon').style.display = 'flex';
-}
-
-function openDeletePopup() {
-    document.getElementById('popupDelete').style.display = 'flex';
-}
-
-function closePopup(id) {
-    document.getElementById(id).style.display = 'none';
-}
-
-// ALTERAÇÃO NO CLIQUE DA SOLUÇÃO (item 1 da solicitação)
-function createSolutionCard(solucao, cor) {
-    const card = document.createElement('div');
-    card.className = `solution-card ${cor}`;
-    
-    const icon = solucao.icone || '💡'; 
-    
-    card.innerHTML = `
-        <div class="card-image">
-            <div class="placeholder">${icon}</div>
-        </div>
-        <div class="card-title">${solucao.nome || 'Solução Digital'}</div>
-    `;
-    
-    // CLIQUE ESQUERDO: Alterado para ir para form-novo-projeto (início do processo)
-    card.addEventListener('click', (e) => {
-        if (e.button !== 2) {
-            // Limpar dados temporários para começar novo processo
-            localStorage.removeItem('formularioData');
-            localStorage.removeItem('recursosData');
-            localStorage.removeItem('pontuacaoData');
-            localStorage.removeItem('editingMode');
-            
-            // Se quiser editar a solução existente, seria necessário carregar os dados
-            // Mas conforme solicitado, vamos iniciar novo processo
-            window.location.href = 'form-novo-projeto.html';
-        }
-    });
-
-    // CLIQUE DIREITO: Menu de contexto
-    card.addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-        
-        rightClickedSolutionDocId = solucao.docId;
-        rightClickedSolutionId = solucao.id;
-        
-        console.log(`🖱️ Solução clicada: docId=${rightClickedSolutionDocId}, id=${rightClickedSolutionId}`);
-        
-        const contextMenu = document.getElementById('contextMenu');
-        contextMenu.style.display = 'flex';
-        contextMenu.style.top = `${e.pageY}px`;
-        contextMenu.style.left = `${e.pageX}px`;
-    });
-    
-    return card;
-}
-
-function createAddNewCard() {
-    const card = document.createElement('div');
-    card.className = 'solution-card add-new-card';
-    card.innerHTML = '+';
-    card.addEventListener('click', () => {
-        window.location.href = 'form-novo-projeto.html';
-    });
-    return card;
 }
 
 async function carregarSolucoes() {
@@ -340,18 +130,23 @@ async function carregarSolucoes() {
     
     try {
         if (typeof BancoDeDados !== 'undefined') {
+            console.log('📡 Buscando soluções no Firebase...');
             const resultado = await BancoDeDados.listarSolucoes();
             
             if (resultado.success && resultado.data) {
                 renderizarSolucoes(grid, resultado.data);
             } else {
+                console.error('❌ Falha ao carregar soluções:', resultado.error);
                 showError(grid, 'Erro ao carregar soluções.');
             }
         } else {
-            renderizarSolucoesDemo(grid);
+            // Modo demo (fallback)
+            console.log('💾 Modo demo: carregando do localStorage');
+            const demo = JSON.parse(localStorage.getItem('solucoesDemo') || '[]');
+            renderizarSolucoes(grid, demo);
         }
     } catch (error) {
-        console.error('Erro ao carregar soluções:', error);
+        console.error('❌ Erro ao carregar soluções:', error);
         showError(grid, 'Erro de conexão com o banco de dados.');
     }
 }
@@ -359,38 +154,332 @@ async function carregarSolucoes() {
 function renderizarSolucoes(grid, solucoes) {
     grid.innerHTML = '';
     
-    solucoes.forEach((solucao, index) => {
-        const cor = cores[index % 3];
-        grid.appendChild(createSolutionCard(solucao, cor));
-    });
+    if (!solucoes || solucoes.length === 0) {
+        grid.innerHTML = `
+            <div class="empty-state" style="grid-column: 1 / -1; text-align: center; padding: 40px;">
+                <div style="font-size: 3rem; margin-bottom: 20px;">📂</div>
+                <h3>Nenhuma solução encontrada</h3>
+                <p>Crie sua primeira solução clicando no botão "+" abaixo</p>
+            </div>
+        `;
+    } else {
+        solucoes.forEach((solucao, index) => {
+            const cor = cores[index % 3];
+            grid.appendChild(createSolutionCard(solucao, cor));
+        });
+    }
     
+    // Adicionar card para nova solução
     grid.appendChild(createAddNewCard());
 }
 
+function createSolutionCard(solucao, cor) {
+    const card = document.createElement('div');
+    card.className = `solution-card ${cor}`;
+    
+    const icon = solucao.icone || '💡';
+    const score = solucao.score ? `${solucao.score.toFixed(1)}%` : '0%';
+    
+    card.innerHTML = `
+        <div class="card-image">
+            <div class="placeholder">${icon}</div>
+        </div>
+        <div class="card-title">${solucao.nome || 'Solução Digital'}</div>
+        <div class="card-score">${score}</div>
+    `;
+    
+    // Clique esquerdo: Abrir para edição
+    card.addEventListener('click', (e) => {
+        e.stopPropagation();
+        abrirEdicaoSolucao(solucao);
+    });
+
+    // Clique direito: Menu de contexto
+    card.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        window.rightClickedSolution = {
+            docId: solucao.docId,
+            id: solucao.id,
+            nome: solucao.nome
+        };
+        
+        const contextMenu = document.getElementById('contextMenu');
+        if (contextMenu) {
+            contextMenu.style.display = 'flex';
+            contextMenu.style.top = `${e.pageY}px`;
+            contextMenu.style.left = `${e.pageX}px`;
+        }
+    });
+    
+    return card;
+}
+
+function createAddNewCard() {
+    const card = document.createElement('div');
+    card.className = 'solution-card add-new-card';
+    card.innerHTML = `
+        <div style="font-size: 4rem; margin-bottom: 10px;">+</div>
+        <div class="card-title">Nova Solução</div>
+    `;
+    
+    card.addEventListener('click', () => {
+        limparDadosTemporarios();
+        window.location.href = 'form-novo-projeto.html';
+    });
+    
+    return card;
+}
+
+function abrirEdicaoSolucao(solucao) {
+    console.log(`✏️ Abrindo solução para edição: ${solucao.nome}`);
+    
+    // Salvar dados para transição
+    localStorage.setItem('editSolutionData', JSON.stringify(solucao));
+    
+    // Navegar para o formulário com parâmetros
+    const params = new URLSearchParams({
+        docId: solucao.docId,
+        id: solucao.id,
+        edit: 'true'
+    });
+    
+    window.location.href = `form-novo-projeto.html?${params.toString()}`;
+}
+
 // ============================================================================
-// PÁGINA DE FORMULÁRIO (form-novo-projeto.html)
+// 4. MENU DE CONTEXTO E POPUPS
 // ============================================================================
 
-function initFormPage() {
-    loadFormData();
+function setupContextMenuListeners() {
+    // Fechar menu ao clicar em qualquer lugar
+    document.addEventListener('click', () => {
+        const menu = document.getElementById('contextMenu');
+        if (menu) menu.style.display = 'none';
+    });
+
+    // Configurar ações do menu
+    document.getElementById('ctxRename')?.addEventListener('click', openRenamePopup);
+    document.getElementById('ctxIcon')?.addEventListener('click', openIconPopup);
+    document.getElementById('ctxDelete')?.addEventListener('click', openDeletePopup);
+
+    // Configurar popups
+    setupPopupActions();
+}
+
+function setupPopupActions() {
+    // Renomear
+    document.getElementById('btnCancelRename')?.addEventListener('click', () => closePopup('popupRename'));
+    document.getElementById('btnSaveRename')?.addEventListener('click', async () => {
+        const newName = document.getElementById('inputNewName').value.trim();
+        
+        if (newName && window.rightClickedSolution?.docId) {
+            try {
+                await BancoDeDados.atualizarSolucao(window.rightClickedSolution.docId, { nome: newName });
+                closePopup('popupRename');
+                await carregarSolucoes();
+                mostrarNotificacao('✅ Nome atualizado com sucesso!', 'success');
+            } catch (error) {
+                mostrarNotificacao('❌ Erro ao atualizar nome', 'error');
+            }
+        }
+    });
+
+    // Ícone
+    document.getElementById('btnCancelIcon')?.addEventListener('click', () => closePopup('popupIcon'));
+    document.getElementById('btnSaveIcon')?.addEventListener('click', async () => {
+        const selectedIcon = document.querySelector('.icon-option.selected');
+        
+        if (selectedIcon && window.rightClickedSolution?.docId) {
+            try {
+                await BancoDeDados.atualizarSolucao(window.rightClickedSolution.docId, { 
+                    icone: selectedIcon.textContent 
+                });
+                closePopup('popupIcon');
+                await carregarSolucoes();
+                mostrarNotificacao('✅ Ícone atualizado com sucesso!', 'success');
+            } catch (error) {
+                mostrarNotificacao('❌ Erro ao atualizar ícone', 'error');
+            }
+        }
+    });
+
+    // Excluir
+    document.getElementById('btnCancelDelete')?.addEventListener('click', () => closePopup('popupDelete'));
+    document.getElementById('btnConfirmDelete')?.addEventListener('click', async () => {
+        const solucao = window.rightClickedSolution;
+        
+        if (solucao?.docId) {
+            const btn = document.getElementById('btnConfirmDelete');
+            btn.innerText = "Apagando...";
+            btn.disabled = true;
+            
+            try {
+                // Usar exclusão completa (com cascata)
+                if (BancoDeDados.excluirSolucaoCompleta) {
+                    await BancoDeDados.excluirSolucaoCompleta(solucao.docId, solucao.id);
+                } else {
+                    await BancoDeDados.excluirSolucao(solucao.docId);
+                }
+                
+                closePopup('popupDelete');
+                await carregarSolucoes();
+                mostrarNotificacao('✅ Solução excluída com sucesso!', 'success');
+            } catch (error) {
+                mostrarNotificacao('❌ Erro ao excluir solução', 'error');
+            } finally {
+                btn.innerText = "Apagar";
+                btn.disabled = false;
+            }
+        }
+    });
+}
+
+function openRenamePopup() {
+    if (window.rightClickedSolution) {
+        document.getElementById('inputNewName').value = window.rightClickedSolution.nome || '';
+        document.getElementById('popupRename').style.display = 'flex';
+        document.getElementById('inputNewName').focus();
+    }
+}
+
+function openIconPopup() {
+    const grid = document.getElementById('iconGrid');
+    grid.innerHTML = '';
+    
+    iconsList.forEach(icon => {
+        const el = document.createElement('div');
+        el.className = 'icon-option';
+        el.textContent = icon;
+        
+        el.onclick = () => {
+            document.querySelectorAll('.icon-option').forEach(i => i.classList.remove('selected'));
+            el.classList.add('selected');
+        };
+        
+        grid.appendChild(el);
+    });
+    
+    document.getElementById('popupIcon').style.display = 'flex';
+}
+
+function openDeletePopup() {
+    if (window.rightClickedSolution) {
+        document.getElementById('popupDelete').style.display = 'flex';
+    }
+}
+
+function closePopup(id) {
+    document.getElementById(id).style.display = 'none';
+}
+
+// ============================================================================
+// 5. PÁGINA 1: FORMULÁRIO
+// ============================================================================
+
+async function initFormPage() {
+    console.log('📋 Inicializando página do formulário...');
+    
+    const params = new URLSearchParams(window.location.search);
+    currentSolutionDocId = params.get('docId');
+    currentSolutionId = params.get('id');
+    editMode = params.get('edit') === 'true';
+    
+    console.log(`Modo: ${editMode ? 'Edição' : 'Criação'}`);
+    console.log(`DocID: ${currentSolutionDocId}, ID: ${currentSolutionId}`);
+    
+    // Configurar navegação
     setupFormNavigation();
+    
+    // Configurar cards de opções
     setupOptionCards();
+    
+    // Carregar dados existentes se for edição
+    if (editMode && currentSolutionDocId) {
+        await carregarSolucaoExistente();
+    } else {
+        // Carregar dados do localStorage para nova solução
+        loadFormData();
+    }
+}
+
+async function carregarSolucaoExistente() {
+    try {
+        console.log(`🔍 Carregando solução existente: ${currentSolutionDocId}`);
+        const res = await BancoDeDados.obterSolucaoPorDocId(currentSolutionDocId);
+        
+        if (res.success && res.data) {
+            solucaoAtual = res.data;
+            
+            // Popular dados no formulário
+            formData.nomeSolucao = solucaoAtual.nome || '';
+            formData.descricaoSolucao = solucaoAtual.descricao || '';
+            formData.tipoSolucao = solucaoAtual.tipo || '';
+            
+            // Atualizar campos visuais
+            if (document.getElementById('nomeSolucao')) {
+                document.getElementById('nomeSolucao').value = solucaoAtual.nome;
+            }
+            
+            if (document.getElementById('descricaoSolucao')) {
+                document.getElementById('descricaoSolucao').value = solucaoAtual.descricao;
+            }
+            
+            // Selecionar tipo correspondente
+            setTimeout(() => {
+                document.querySelectorAll('.option-card').forEach(card => {
+                    if (card.getAttribute('data-value') === solucaoAtual.tipo) {
+                        card.classList.add('selected');
+                    }
+                });
+            }, 100);
+            
+            // Atualizar título da página
+            const titleEl = document.querySelector('.form-title');
+            if (titleEl) {
+                titleEl.textContent = `Editando: ${solucaoAtual.nome}`;
+            }
+            
+            console.log('✅ Solução carregada com sucesso');
+        }
+    } catch (error) {
+        console.error('❌ Erro ao carregar solução:', error);
+        mostrarNotificacao('❌ Erro ao carregar dados da solução', 'error');
+    }
 }
 
 function loadFormData() {
-    const savedData = localStorage.getItem('formularioData');
-    if (savedData) {
-        formData = JSON.parse(savedData);
+    const saved = localStorage.getItem('formularioData');
+    if (saved) {
+        try {
+            formData = JSON.parse(saved);
+            
+            if (document.getElementById('nomeSolucao')) {
+                document.getElementById('nomeSolucao').value = formData.nomeSolucao || '';
+            }
+            
+            if (document.getElementById('descricaoSolucao')) {
+                document.getElementById('descricaoSolucao').value = formData.descricaoSolucao || '';
+            }
+            
+            console.log('💾 Dados do formulário carregados do localStorage');
+        } catch (error) {
+            console.error('❌ Erro ao carregar dados do formulário:', error);
+        }
     }
 }
 
 function setupFormNavigation() {
+    // Mostrar primeiro passo
     showFormStep(0);
     
+    // Configurar botões de avançar
     document.querySelectorAll('.btn-avancar').forEach(btn => {
         btn.addEventListener('click', advanceStep);
     });
     
+    // Configurar botões de voltar
     document.querySelectorAll('.btn-voltar').forEach(btn => {
         btn.addEventListener('click', goBackStep);
     });
@@ -399,75 +488,106 @@ function setupFormNavigation() {
 function setupOptionCards() {
     document.querySelectorAll('.option-card').forEach(card => {
         card.addEventListener('click', function() {
-            document.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+            // Remover seleção de todas as cards
+            document.querySelectorAll('.option-card').forEach(c => {
+                c.classList.remove('selected');
+            });
+            
+            // Selecionar esta card
             this.classList.add('selected');
             
-            const tipo = this.getAttribute('data-value') || this.textContent.trim();
-            formData.tipoSolucao = tipo;
+            // Salvar tipo selecionado
+            formData.tipoSolucao = this.getAttribute('data-value');
             saveFormData();
+            
+            console.log(`📌 Tipo selecionado: ${formData.tipoSolucao}`);
         });
     });
 }
 
-function showFormStep(stepIndex) {
+function showFormStep(index) {
+    // Esconder todos os passos
     document.querySelectorAll('.form-step').forEach(step => {
         step.classList.remove('active');
         step.style.display = 'none';
     });
     
-    const currentStepElement = document.getElementById(`step${stepIndex}`);
-    if (currentStepElement) {
-        currentStepElement.classList.add('active');
-        currentStepElement.style.display = 'block';
-        currentStep = stepIndex;
+    // Mostrar passo atual
+    const step = document.getElementById(`step${index}`);
+    if (step) {
+        step.classList.add('active');
+        step.style.display = 'block';
+        currentStep = index;
         updateProgressBar();
+        
+        console.log(`📊 Passo atual: ${index + 1}/${totalSteps}`);
     }
 }
 
 function advanceStep() {
+    // Salvar dados do passo atual
+    saveCurrentStepData();
+    
+    // Validações específicas por passo
+    if (currentStep === 1 && !formData.tipoSolucao) {
+        mostrarNotificacao('⚠️ Selecione um tipo de solução', 'warning');
+        return;
+    }
+    
+    if (currentStep === 2 && !formData.nomeSolucao?.trim()) {
+        mostrarNotificacao('⚠️ Informe o nome da solução', 'warning');
+        document.getElementById('nomeSolucao').focus();
+        return;
+    }
+    
+    // Avançar para próximo passo ou próxima página
     if (currentStep < totalSteps - 1) {
-        saveCurrentStepData();
-        
-        const currentElement = document.getElementById(`step${currentStep}`);
-        currentElement.style.animation = 'fadeOut 0.3s ease';
-        
-        setTimeout(() => {
-            showFormStep(currentStep + 1);
-            currentElement.style.animation = '';
-        }, 300);
+        showFormStep(currentStep + 1);
     } else {
-        saveCurrentStepData();
-        window.location.href = 'recursos.html';
+        // Último passo: ir para recursos
+        if (editMode) {
+            atualizarSolucaoBasica();
+        }
+        
+        const params = editMode ? 
+            `?docId=${currentSolutionDocId}&id=${currentSolutionId}&edit=true` : '';
+        
+        window.location.href = `recursos.html${params}`;
     }
 }
 
 function goBackStep() {
+    saveCurrentStepData();
+    
     if (currentStep > 0) {
-        saveCurrentStepData();
-        
-        const currentElement = document.getElementById(`step${currentStep}`);
-        currentElement.style.animation = 'fadeOut 0.3s ease';
-        
-        setTimeout(() => {
-            showFormStep(currentStep - 1);
-            currentElement.style.animation = '';
-        }, 300);
+        showFormStep(currentStep - 1);
     } else {
         window.location.href = 'index.html';
     }
 }
 
+async function atualizarSolucaoBasica() {
+    try {
+        await BancoDeDados.atualizarSolucao(currentSolutionDocId, {
+            nome: formData.nomeSolucao,
+            descricao: formData.descricaoSolucao,
+            tipo: formData.tipoSolucao
+        });
+        
+        console.log('✅ Dados básicos da solução atualizados');
+    } catch (error) {
+        console.error('❌ Erro ao atualizar solução:', error);
+    }
+}
+
 function saveCurrentStepData() {
-    const stepElement = document.getElementById(`step${currentStep}`);
-    const inputs = stepElement.querySelectorAll('input, textarea, select');
+    const step = document.getElementById(`step${currentStep}`);
+    if (!step) return;
     
-    inputs.forEach(input => {
-        if (input.type === 'radio' || input.type === 'checkbox') {
-            if (input.checked) {
-                formData[input.name || input.id] = input.value;
-            }
-        } else {
-            formData[input.name || input.id] = input.value;
+    // Salvar valores dos campos
+    step.querySelectorAll('input, textarea').forEach(field => {
+        if (field.id) {
+            formData[field.id] = field.value;
         }
     });
     
@@ -479,198 +599,458 @@ function saveFormData() {
 }
 
 function updateProgressBar() {
-    const progressBar = document.querySelector('.progress-bar');
-    if (progressBar) {
-        const progress = ((currentStep + 1) / totalSteps) * 100;
-        progressBar.style.width = `${progress}%`;
-    }
+    const progress = ((currentStep + 1) / totalSteps) * 100;
+    document.getElementById('progressBar').style.width = `${progress}%`;
 }
 
 // ============================================================================
-// PÁGINA KILL SWITCH (killswitch.html) - COM CORREÇÕES
+// 6. PÁGINA 2: RECURSOS (PROBLEMA 01 CORRIGIDO)
 // ============================================================================
 
-function initKillSwitchPage() {
-    loadPontuacaoData();
-    setupKillSwitchListeners();
-    setupSliders();
-    setupKillSwitchNavigation();
+async function initRecursosPage() {
+    console.log('💼 Inicializando página de recursos...');
+    
+    const params = new URLSearchParams(window.location.search);
+    currentSolutionDocId = params.get('docId');
+    currentSolutionId = params.get('id');
+    editMode = params.get('edit') === 'true';
+    
+    console.log(`Modo: ${editMode ? 'Edição' : 'Criação'}`);
+    console.log(`DocID: ${currentSolutionDocId}, ID: ${currentSolutionId}`);
+    
+    // Gerar ID temporário se necessário (nova solução)
+    if (!currentSolutionId && !editMode) {
+        tempSolutionId = 'temp_' + Date.now().toString(36) + Math.random().toString(36).substr(2);
+        console.log(`🆔 ID temporário gerado: ${tempSolutionId}`);
+    }
+    
+    // Aplicar animação de entrada
+    applyPageAnimation();
+    
+    // Carregar recursos existentes
+    await loadRecursosTexto();
+    
+    // Configurar eventos
+    setupRecursosEvents();
+    
+    console.log('✅ Página de recursos inicializada');
+}
+
+function applyPageAnimation() {
+    const formContainer = document.querySelector('.form-container');
+    if (formContainer) {
+        formContainer.style.opacity = '0';
+        formContainer.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            formContainer.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+            formContainer.style.opacity = '1';
+            formContainer.style.transform = 'translateY(0)';
+        }, 100);
+    }
+}
+
+async function loadRecursosTexto() {
+    console.log('📥 Carregando texto de recursos...');
+    
+    let textoCarregado = '';
+    
+    // 1. Tentar carregar do banco (modo edição)
+    if (editMode && currentSolutionId && typeof BancoDeDados !== 'undefined') {
+        try {
+            console.log(`🔍 Buscando recursos no banco para ID: ${currentSolutionId}`);
+            const resultado = await BancoDeDados.obterRecursos(currentSolutionId);
+            
+            if (resultado.success && resultado.data !== undefined) {
+                textoCarregado = resultado.data;
+                console.log(`✅ Recursos carregados do banco (${textoCarregado.length} caracteres)`);
+            } else {
+                console.log('ℹ️ Nenhum recurso encontrado no banco');
+            }
+        } catch (error) {
+            console.error('❌ Erro ao carregar recursos do banco:', error);
+        }
+    }
+    
+    // 2. Se não encontrou no banco, tentar localStorage
+    if (!textoCarregado) {
+        // Verificar se há recursos salvos para ID temporário
+        if (tempSolutionId) {
+            const chaveTemp = `recursos_temp_${tempSolutionId}`;
+            textoCarregado = localStorage.getItem(chaveTemp) || '';
+            
+            if (textoCarregado) {
+                console.log(`💾 Recursos carregados do localStorage temporário: ${chaveTemp}`);
+            }
+        }
+        
+        // Se ainda não tem, tentar localStorage geral
+        if (!textoCarregado) {
+            textoCarregado = localStorage.getItem('recursosTexto') || '';
+            if (textoCarregado) {
+                console.log('💾 Recursos carregados do localStorage geral');
+            }
+        }
+    }
+    
+    // Atualizar variável global e textarea
+    recursosTexto = textoCarregado;
+    
+    const textarea = document.getElementById('recursosTexto');
+    if (textarea) {
+        textarea.value = recursosTexto;
+        console.log(`✅ Textarea atualizado com ${recursosTexto.length} caracteres`);
+    }
+}
+
+function setupRecursosEvents() {
+    const textarea = document.getElementById('recursosTexto');
+    const btnVoltar = document.querySelector('.btn-voltar');
+    const btnAvancar = document.querySelector('.btn-avancar');
+    
+    if (!textarea || !btnVoltar || !btnAvancar) return;
+    
+    // Salvar automaticamente ao digitar (debounced)
+    let saveTimeout;
+    textarea.addEventListener('input', (e) => {
+        recursosTexto = e.target.value;
+        
+        // Salvar no localStorage imediatamente
+        localStorage.setItem('recursosTexto', recursosTexto);
+        
+        // Salvar no localStorage temporário se necessário
+        if (tempSolutionId) {
+            localStorage.setItem(`recursos_temp_${tempSolutionId}`, recursosTexto);
+        }
+        
+        // Debounced save to Firebase (apenas em edição)
+        if (editMode && currentSolutionId) {
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => {
+                salvarRecursosNoBanco();
+            }, 2000);
+        }
+    });
+    
+    // Botão Voltar
+    btnVoltar.addEventListener('click', async () => {
+        // Salvar antes de sair
+        await salvarRecursosNoBanco();
+        
+        // Navegar de volta
+        const params = editMode ? 
+            `?docId=${currentSolutionDocId}&id=${currentSolutionId}&edit=true` : '';
+        
+        window.location.href = `form-novo-projeto.html${params}`;
+    });
+    
+    // Botão Avançar
+    btnAvancar.addEventListener('click', async () => {
+        if (isSaving) return;
+        isSaving = true;
+        
+        const textoOriginal = btnAvancar.innerHTML;
+        btnAvancar.innerHTML = '⏳ Salvando...';
+        btnAvancar.disabled = true;
+        
+        try {
+            // 1. Salvar recursos no banco
+            console.log('💾 Salvando recursos antes de avançar...');
+            await salvarRecursosNoBanco();
+            
+            // 2. Animação de saída
+            const formContainer = document.querySelector('.form-container');
+            if (formContainer) {
+                formContainer.style.opacity = '0';
+                formContainer.style.transform = 'translateY(-20px)';
+                await new Promise(resolve => setTimeout(resolve, 300));
+            }
+            
+            // 3. Navegar para próxima página
+            const params = editMode ? 
+                `?docId=${currentSolutionDocId}&id=${currentSolutionId}&edit=true` : '';
+            
+            window.location.href = `killswitch.html${params}`;
+            
+        } catch (error) {
+            console.error('❌ Erro ao avançar:', error);
+            mostrarNotificacao('❌ Erro ao salvar recursos', 'error');
+            
+            btnAvancar.innerHTML = textoOriginal;
+            btnAvancar.disabled = false;
+            isSaving = false;
+        }
+    });
+}
+
+async function salvarRecursosNoBanco() {
+    // Obter texto atual
+    const textarea = document.getElementById('recursosTexto');
+    if (textarea) {
+        recursosTexto = textarea.value.trim();
+    }
+    
+    // Salvar no localStorage
+    localStorage.setItem('recursosTexto', recursosTexto);
+    
+    // Se tem ID temporário, salvar com chave específica
+    if (tempSolutionId) {
+        localStorage.setItem(`recursos_temp_${tempSolutionId}`, recursosTexto);
+    }
+    
+    // Salvar no Firebase se possível
+    const idParaSalvar = editMode ? currentSolutionId : tempSolutionId;
+    
+    if (idParaSalvar && typeof BancoDeDados !== 'undefined' && recursosTexto !== '') {
+        try {
+            console.log(`🔥 Salvando recursos no Firebase para ID: ${idParaSalvar}`);
+            const resultado = await BancoDeDados.salvarRecursos(idParaSalvar, recursosTexto);
+            
+            if (resultado.success) {
+                console.log('✅ Recursos salvos no Firebase com sucesso');
+                return resultado;
+            } else {
+                throw new Error(resultado.error);
+            }
+        } catch (error) {
+            console.error('❌ Erro ao salvar recursos no Firebase:', error);
+            // Não mostrar erro ao usuário, apenas logar
+            return { success: false, error: error.message };
+        }
+    }
+    
+    return { success: true };
+}
+
+// ============================================================================
+// 7. PÁGINA 3: KILLSWITCH
+// ============================================================================
+
+async function initKillSwitchPage() {
+    console.log('🔋 Inicializando página Kill Switch...');
+    
+    const params = new URLSearchParams(window.location.search);
+    currentSolutionDocId = params.get('docId');
+    currentSolutionId = params.get('id');
+    editMode = params.get('edit') === 'true';
+    
+    // Carregar dados existentes
+    await loadPontuacaoData();
+    
+    // Configurar UI
+    setupKillSwitchUI();
+    
+    // Calcular score inicial
     calculateAndDisplayScore();
-}
-
-function loadPontuacaoData() {
-    const saved = localStorage.getItem('pontuacaoData');
-    if (saved) {
-        pontuacaoData = JSON.parse(saved);
-    } else {
-        pontuacaoData = {
-            killSwitch: 0,
-            matrizPositiva: Array(4).fill(1),
-            matrizNegativa: Array(3).fill(1),
-            score: 0
-        };
-    }
-}
-
-function setupKillSwitchListeners() {
-    document.querySelectorAll('.kill-switch input[type="checkbox"]').forEach((checkbox, index) => {
-        checkbox.checked = pontuacaoData.killSwitch >= index + 1;
-        checkbox.addEventListener('change', updateKillSwitch);
+    
+    // Configurar eventos
+    document.querySelector('.btn-voltar')?.addEventListener('click', () => {
+        const params = editMode ? 
+            `?docId=${currentSolutionDocId}&id=${currentSolutionId}&edit=true` : '';
+        
+        window.location.href = `recursos.html${params}`;
+    });
+    
+    document.querySelector('.btn-avancar')?.addEventListener('click', () => {
+        // Salvar no localStorage
+        localStorage.setItem('pontuacaoData', JSON.stringify(pontuacaoData));
+        
+        // Navegar para canvas
+        const params = editMode ? 
+            `?docId=${currentSolutionDocId}&id=${currentSolutionId}&edit=true` : '';
+        
+        window.location.href = `canvas.html${params}`;
     });
 }
 
-function setupSliders() {
-    // NOVO: Atualizar cor dos sliders para laranja
-    document.querySelectorAll('.matriz-positiva input[type="range"]').forEach((slider, index) => {
-        const value = pontuacaoData.matrizPositiva[index] || 1;
-        slider.value = value;
-        slider.nextElementSibling.textContent = value;
-        updateSliderBackground(slider); // NOVA FUNÇÃO
-        slider.addEventListener('input', handleSliderInput);
-        slider.addEventListener('change', calculateAndDisplayScore);
-    });
-    
-    document.querySelectorAll('.matriz-negativa input[type="range"]').forEach((slider, index) => {
-        const value = pontuacaoData.matrizNegativa[index] || 1;
-        slider.value = value;
-        slider.nextElementSibling.textContent = value;
-        updateSliderBackground(slider); // NOVA FUNÇÃO
-        slider.addEventListener('input', handleSliderInput);
-        slider.addEventListener('change', calculateAndDisplayScore);
-    });
-}
-
-// NOVA FUNÇÃO: Atualizar background do slider para laranja
-function updateSliderBackground(slider) {
-    const value = slider.value;
-    const min = slider.min || 1;
-    const max = slider.max || 10;
-    const percent = ((value - min) / (max - min)) * 100;
-    
-    // Atualizar cor da parte preenchida para laranja
-    slider.style.background = `linear-gradient(to right, #FF6B35 0%, #FF6B35 ${percent}%, #e0e0e0 ${percent}%, #e0e0e0 100%)`;
-}
-
-function handleSliderInput(event) {
-    const slider = event.target;
-    slider.nextElementSibling.textContent = slider.value;
-    updateSliderBackground(slider);
-}
-
-function updateKillSwitch() {
-    const checkboxes = document.querySelectorAll('.kill-switch input[type="checkbox"]');
-    const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
-    pontuacaoData.killSwitch = checkedCount;
-    calculateAndDisplayScore();
-}
-
-// CORREÇÃO DA FÓRMULA (item 2 da solicitação)
-function calculateAndDisplayScore() {
-    const killSwitchCount = pontuacaoData.killSwitch;
-    
-    const slidersPositiva = document.querySelectorAll('.matriz-positiva input[type="range"]');
-    const somaPositiva = Array.from(slidersPositiva).reduce((sum, slider) => sum + parseInt(slider.value), 0);
-    
-    const slidersNegativa = document.querySelectorAll('.matriz-negativa input[type="range"]');
-    const somaNegativa = Math.max(Array.from(slidersNegativa).reduce((sum, slider) => sum + parseInt(slider.value), 0), 1);
-    
-    // NOVA FÓRMULA: (46,666 / (a * (x/y))) * 100
-    let score = 0;
-    if (killSwitchCount > 0 && somaNegativa > 0 && somaPositiva > 0) {
-        score = (46.666 / (killSwitchCount * (somaPositiva / somaNegativa))) * 100;
+async function loadPontuacaoData() {
+    // Carregar do banco se for edição
+    if (editMode && currentSolutionDocId) {
+        try {
+            const res = await BancoDeDados.obterSolucaoPorDocId(currentSolutionDocId);
+            if (res.success && res.data && res.data.dadosKillswitch) {
+                pontuacaoData = res.data.dadosKillswitch;
+                console.log('✅ Dados de pontuação carregados do banco');
+                return;
+            }
+        } catch (error) {
+            console.error('❌ Erro ao carregar pontuação do banco:', error);
+        }
     }
     
-    const scoreNormalizado = Math.min(Math.max(score, 0), 100);
-    
-    pontuacaoData.matrizPositiva = Array.from(slidersPositiva).map(s => parseInt(s.value));
-    pontuacaoData.matrizNegativa = Array.from(slidersNegativa).map(s => parseInt(s.value));
-    pontuacaoData.score = scoreNormalizado;
-    
-    savePontuacaoData();
-    updateScoreDisplay(scoreNormalizado);
-}
-
-function updateScoreDisplay(score) {
-    const scoreElement = document.getElementById('scoreValue');
-    const scoreBar = document.getElementById('scoreBar');
-    const scoreComment = document.getElementById('scoreComment');
-    
-    if (scoreElement) scoreElement.textContent = `${score.toFixed(1)}%`;
-    if (scoreBar) {
-        scoreBar.style.width = `${score}%`;
-        scoreBar.style.backgroundColor = score >= 60 ? '#4CAF50' : score >= 40 ? '#FF9800' : '#F44336';
-    }
-    
-    if (scoreComment) {
-        if (score >= 80) {
-            scoreComment.textContent = 'Excelente! Solução altamente recomendada.';
-        } else if (score >= 60) {
-            scoreComment.textContent = 'Bom potencial. Recomenda-se análise detalhada.';
-        } else if (score >= 40) {
-            scoreComment.textContent = 'Potencial moderado. Avaliar riscos.';
-        } else {
-            scoreComment.textContent = 'Necessita revisão. Potencial abaixo do esperado.';
+    // Carregar do localStorage
+    const local = localStorage.getItem('pontuacaoData');
+    if (local) {
+        try {
+            pontuacaoData = JSON.parse(local);
+            console.log('💾 Dados de pontuação carregados do localStorage');
+        } catch (error) {
+            console.error('❌ Erro ao parsear dados de pontuação:', error);
         }
     }
 }
 
-function savePontuacaoData() {
-    localStorage.setItem('pontuacaoData', JSON.stringify(pontuacaoData));
-}
-
-function setupKillSwitchNavigation() {
-    document.querySelector('.btn-voltar')?.addEventListener('click', () => {
-        window.location.href = 'recursos.html';
+function setupKillSwitchUI() {
+    // Configurar checkboxes do Kill Switch
+    document.querySelectorAll('.kill-switch input[type="checkbox"]').forEach((checkbox, index) => {
+        checkbox.checked = pontuacaoData.killSwitch > index;
+        checkbox.addEventListener('change', calculateAndDisplayScore);
     });
     
-    document.querySelector('.btn-avancar')?.addEventListener('click', () => {
-        savePontuacaoData();
-        window.location.href = 'canvas.html';
+    // Configurar sliders da matriz positiva
+    document.querySelectorAll('.matriz-positiva input[type="range"]').forEach((slider, index) => {
+        const valor = pontuacaoData.matrizPositiva ? pontuacaoData.matrizPositiva[index] : 1;
+        slider.value = valor;
+        slider.nextElementSibling.textContent = valor;
+        
+        slider.addEventListener('input', (e) => {
+            e.target.nextElementSibling.textContent = e.target.value;
+            calculateAndDisplayScore();
+        });
+    });
+    
+    // Configurar sliders da matriz negativa
+    document.querySelectorAll('.matriz-negativa input[type="range"]').forEach((slider, index) => {
+        const valor = pontuacaoData.matrizNegativa ? pontuacaoData.matrizNegativa[index] : 1;
+        slider.value = valor;
+        slider.nextElementSibling.textContent = valor;
+        
+        slider.addEventListener('input', (e) => {
+            e.target.nextElementSibling.textContent = e.target.value;
+            calculateAndDisplayScore();
+        });
     });
 }
 
-// ============================================================================
-// PÁGINA CANVAS (canvas.html)
-// ============================================================================
-
-function initCanvasPage() {
-    const urlParams = new URLSearchParams(window.location.search);
-    currentSolutionId = urlParams.get('id') || generateId();
+function calculateAndDisplayScore() {
+    // Calcular Kill Switch
+    const ksCount = document.querySelectorAll('.kill-switch input[type="checkbox"]:checked').length;
+    pontuacaoData.killSwitch = ksCount;
     
-    loadCanvasData();
-    setupCanvasCells();
-    setupCanvasNavigation();
-}
-
-function loadCanvasData() {
-    const saved = localStorage.getItem(`canvas_${currentSolutionId}`);
-    if (saved) {
-        canvasData = JSON.parse(saved);
-    } else {
-        canvasData = {
-            'publico-alvo': '',
-            'problema-resolve': '',
-            'formato-solucao': '',
-            'funcionalidades': '',
-            'modelo-negocio': '',
-            'trl-atual': '',
-            'trl-esperada': '',
-            'link-prototipo': '',
-            'link-pitch': '',
-            'link-pdf': '',
-            'escalabilidade': ''
-        };
+    // Calcular matriz positiva
+    let sumPos = 0;
+    pontuacaoData.matrizPositiva = [];
+    
+    document.querySelectorAll('.matriz-positiva input[type="range"]').forEach((slider, index) => {
+        const valor = parseInt(slider.value);
+        sumPos += valor;
+        pontuacaoData.matrizPositiva[index] = valor;
+    });
+    
+    // Calcular matriz negativa
+    let sumNeg = 0;
+    pontuacaoData.matrizNegativa = [];
+    
+    document.querySelectorAll('.matriz-negativa input[type="range"]').forEach((slider, index) => {
+        const valor = parseInt(slider.value);
+        sumNeg += valor;
+        pontuacaoData.matrizNegativa[index] = valor;
+    });
+    
+    // Evitar divisão por zero
+    if (sumNeg === 0) sumNeg = 1;
+    
+    // Cálculo do score (fórmula: (killSwitch * (somaPositiva / somaNegativa)) / 46.7 * 100)
+    let rawScore = (ksCount * (sumPos / sumNeg));
+    let score = (rawScore / 46.7) * 100;
+    
+    // Limitar entre 0 e 100
+    score = Math.max(0, Math.min(100, score));
+    pontuacaoData.score = score;
+    
+    // Atualizar UI
+    const scoreValue = document.getElementById('scoreValue');
+    const scoreBar = document.getElementById('scoreBar');
+    const scoreComment = document.getElementById('scoreComment');
+    
+    if (scoreValue) {
+        scoreValue.textContent = `${score.toFixed(1)}%`;
+        scoreValue.style.color = getScoreColor(score);
     }
     
-    Object.keys(canvasData).forEach(campoId => {
-        updateCanvasCell(campoId, canvasData[campoId]);
-    });
+    if (scoreBar) {
+        scoreBar.style.width = `${score}%`;
+        scoreBar.style.background = getScoreColor(score);
+    }
+    
+    if (scoreComment) {
+        scoreComment.textContent = getScoreComment(score);
+        scoreComment.style.color = getScoreColor(score);
+    }
+    
+    console.log(`📊 Score calculado: ${score.toFixed(1)}%`);
 }
 
-function setupCanvasCells() {
-    const celulas = [
+function getScoreColor(score) {
+    if (score >= 80) return '#00C851'; // Verde
+    if (score >= 60) return '#FFBB33'; // Amarelo
+    if (score >= 40) return '#FF8800'; // Laranja
+    return '#FF4444'; // Vermelho
+}
+
+function getScoreComment(score) {
+    if (score >= 80) return 'Excelente! Alta prioridade.';
+    if (score >= 60) return 'Bom potencial. Avaliar detalhes.';
+    if (score >= 40) return 'Potencial moderado. Revisar critérios.';
+    return 'Baixo potencial. Considerar alternativas.';
+}
+
+// ============================================================================
+// 8. PÁGINA 4: CANVAS (PROBLEMA 03 CORRIGIDO)
+// ============================================================================
+
+async function initCanvasPage() {
+    console.log('🎨 Inicializando página Canvas...');
+    
+    const params = new URLSearchParams(window.location.search);
+    currentSolutionDocId = params.get('docId');
+    currentSolutionId = params.get('id');
+    editMode = params.get('edit') === 'true';
+    
+    console.log(`Modo: ${editMode ? 'Edição' : 'Criação'}`);
+    console.log(`DocID: ${currentSolutionDocId}, ID: ${currentSolutionId}`);
+    
+    // Carregar dados existentes da solução
+    if (editMode && currentSolutionDocId) {
+        try {
+            const res = await BancoDeDados.obterSolucaoPorDocId(currentSolutionDocId);
+            if (res.success) {
+                solucaoAtual = res.data;
+                console.log('✅ Dados da solução carregados');
+            }
+        } catch (error) {
+            console.error('❌ Erro ao carregar solução:', error);
+        }
+    }
+    
+    // Carregar dados do canvas
+    await loadCanvasData();
+    
+    // Configurar interações
+    setupCanvasInteractions();
+    
+    // Configurar eventos dos botões
+    document.querySelector('.btn-voltar')?.addEventListener('click', () => {
+        const params = editMode ? 
+            `?docId=${currentSolutionDocId}&id=${currentSolutionId}&edit=true` : '';
+        
+        window.location.href = `killswitch.html${params}`;
+    });
+    
+    document.querySelector('.btn-finalizar')?.addEventListener('click', async () => {
+        await finalizarSalvarTudo();
+    });
+    
+    console.log('✅ Página Canvas inicializada');
+}
+
+async function loadCanvasData() {
+    console.log('📥 Carregando dados do Canvas...');
+    
+    // Lista de IDs dos campos do canvas (correspondem aos IDs do HTML)
+    const camposCanvas = [
         'publico-alvo',
-        'problema-resolve',
+        'problema-resolve', 
         'formato-solucao',
         'funcionalidades',
         'modelo-negocio',
@@ -682,848 +1062,463 @@ function setupCanvasCells() {
         'escalabilidade'
     ];
     
-    celulas.forEach(id => {
-        const celula = document.getElementById(id);
-        if (celula) {
-            celula.addEventListener('click', () => openCanvasEditor(id, celula.querySelector('h3').textContent));
-        }
-    });
-}
-
-function updateCanvasCell(campoId, conteudo) {
-    const celula = document.getElementById(campoId);
-    if (!celula) return;
-    
-    const textoExibido = conteudo.length > 100 ? 
-        conteudo.substring(0, 100) + '...' : 
-        conteudo || 'Clique para editar...';
-    
-    celula.querySelector('p').textContent = textoExibido;
-    celula.setAttribute('data-conteudo', conteudo);
-    
-    canvasData[campoId] = conteudo;
-}
-
-function openCanvasEditor(campoId, titulo) {
-    const conteudoAtual = canvasData[campoId] || '';
-    
-    const popup = document.createElement('div');
-    popup.className = 'popup-overlay';
-    popup.innerHTML = `
-        <div class="popup-content canvas-popup">
-            <h2>${titulo}</h2>
-            <textarea id="canvasTextarea" placeholder="Digite o conteúdo aqui...">${conteudoAtual}</textarea>
-            <div class="popup-buttons">
-                <button class="btn btn-secondary" id="cancelCanvas">Cancelar</button>
-                <button class="btn btn-primary" id="saveCanvas">Salvar</button>
-            </div>
-        </div>
-    `;
-    
-    document.body.appendChild(popup);
-    popup.style.display = 'flex';
-    
-    const textarea = popup.querySelector('#canvasTextarea');
-    textarea.style.minHeight = '300px';
-    textarea.style.maxHeight = '400px';
-    textarea.style.overflowY = 'auto';
-    textarea.focus();
-    
-    popup.querySelector('#cancelCanvas').addEventListener('click', () => {
-        document.body.removeChild(popup);
-    });
-    
-    popup.querySelector('#saveCanvas').addEventListener('click', () => {
-        const novoConteudo = textarea.value;
-        updateCanvasCell(campoId, novoConteudo);
-        saveCanvasData();
-        document.body.removeChild(popup);
-    });
-    
-    popup.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            document.body.removeChild(popup);
+    // Inicializar canvasData com valores padrão
+    camposCanvas.forEach(campo => {
+        if (!canvasData.hasOwnProperty(campo)) {
+            canvasData[campo] = '';
         }
     });
     
-    popup.addEventListener('click', (e) => {
-        if (e.target === popup) {
-            document.body.removeChild(popup);
-        }
-    });
-}
-
-function saveCanvasData() {
-    localStorage.setItem(`canvas_${currentSolutionId}`, JSON.stringify(canvasData));
-}
-
-function setupCanvasNavigation() {
-    document.querySelector('.btn-voltar')?.addEventListener('click', () => {
-        window.location.href = 'killswitch.html';
-    });
-    
-    document.querySelector('.btn-finalizar')?.addEventListener('click', salvarSoluçãoCompleta);
-}
-
-async function salvarSoluçãoCompleta() {
-    try {
-        const formularioData = JSON.parse(localStorage.getItem('formularioData') || '{}');
-        const recursosData = JSON.parse(localStorage.getItem('recursosData') || '[]');
-        const pontuacaoData = JSON.parse(localStorage.getItem('pontuacaoData') || '{}');
-        
-        const solucaoData = {
-            nome: formularioData.nomeSolucao || 'Nova Solução',
-            descricao: formularioData.descricaoSolucao || '',
-            tipo: formularioData.tipoSolucao || 'Criar Nova Solução',
-            dataCriacao: new Date().toISOString(),
-            score: pontuacaoData.score || 0,
-            icone: '💡',
-            status: 'Em análise' // Status padrão
-        };
-        
-        if (typeof BancoDeDados !== 'undefined') {
-            const resultado = await BancoDeDados.adicionarSolucao(solucaoData);
-            
-            if (resultado.success) {
-                await BancoDeDados.salvarRespostasFormulario(resultado.id, formularioData);
-                await BancoDeDados.salvarRecursos(resultado.id, recursosData);
-                await BancoDeDados.salvarPontuacao(
-                    resultado.id,
-                    pontuacaoData.killSwitch || 0,
-                    pontuacaoData.matrizPositiva || [1,1,1,1],
-                    pontuacaoData.matrizNegativa || [1,1,1],
-                    pontuacaoData.score || 0
-                );
-                await BancoDeDados.salvarCanvas(resultado.id, canvasData);
-                
-                limparDadosTemporarios();
-                
-                showNotification('✅ Solução cadastrada com sucesso!', 'success');
-                setTimeout(() => {
-                    window.location.href = 'index.html';
-                }, 1500);
-            } else {
-                showNotification('❌ Erro ao salvar solução: ' + resultado.error, 'error');
-            }
-        } else {
-            const solucoes = JSON.parse(localStorage.getItem('solucoesDemo') || '[]');
-            solucoes.push({
-                id: currentSolutionId,
-                ...solucaoData
-            });
-            localStorage.setItem('solucoesDemo', JSON.stringify(solucoes));
-            
-            localStorage.setItem(`formulario_${currentSolutionId}`, JSON.stringify(formularioData));
-            localStorage.setItem(`recursos_${currentSolutionId}`, JSON.stringify(recursosData));
-            localStorage.setItem(`pontuacao_${currentSolutionId}`, JSON.stringify(pontuacaoData));
-            
-            limparDadosTemporarios();
-            
-            showNotification('✅ Solução salva em modo demo (localStorage).', 'success');
-            setTimeout(() => {
-                window.location.href = 'index.html';
-            }, 1500);
-        }
-        
-    } catch (error) {
-        console.error('Erro ao salvar solução:', error);
-        showNotification('❌ Erro ao salvar a solução. Verifique o console para detalhes.', 'error');
-    }
-}
-
-function limparDadosTemporarios() {
-    localStorage.removeItem('formularioData');
-    localStorage.removeItem('recursosData');
-    localStorage.removeItem('pontuacaoData');
-    localStorage.removeItem(`canvas_${currentSolutionId}`);
-}
-
-// ============================================================================
-// PÁGINA AVALIAÇÃO (avaliacao.html) - NOVA FUNCIONALIDADE
-// ============================================================================
-
-function initAvaliacaoPage() {
-    const urlParams = new URLSearchParams(window.location.search);
-    currentSolutionId = urlParams.get('id') || localStorage.getItem('avaliacaoSolutionId');
-    
-    if (!currentSolutionId) {
-        showNotification('Nenhuma solução selecionada para avaliação', 'error');
-        setTimeout(() => window.location.href = 'index.html', 2000);
-        return;
-    }
-    
-    carregarStatusSolucao();
-    carregarAvaliacoes();
-    setupAvaliacaoListeners();
-    setupEstrelasMedia();
-}
-
-async function carregarStatusSolucao() {
-    const statusSelect = document.getElementById('statusSelect');
-    if (!statusSelect) return;
-    
-    try {
-        const docId = localStorage.getItem('avaliacaoSolutionDocId');
-        if (docId && typeof BancoDeDados !== 'undefined') {
-            const resultado = await BancoDeDados.obterStatusSolucao(docId);
-            if (resultado.success) {
-                statusSelect.value = resultado.status || '';
-            }
-        }
-        
-        statusSelect.addEventListener('change', async function() {
-            const novoStatus = this.value;
-            const docId = localStorage.getItem('avaliacaoSolutionDocId');
-            
-            if (docId && typeof BancoDeDados !== 'undefined') {
-                const resultado = await BancoDeDados.atualizarStatusSolucao(docId, novoStatus);
-                if (resultado.success) {
-                    showNotification('Status atualizado com sucesso!', 'success');
-                }
-            }
-        });
-    } catch (error) {
-        console.error('Erro ao carregar status:', error);
-    }
-}
-
-async function carregarAvaliacoes() {
-    const grid = document.getElementById('avaliacoesGrid');
-    if (!grid) return;
-    
-    showLoading(grid);
-    
-    try {
-        if (typeof BancoDeDados !== 'undefined') {
-            const resultado = await BancoDeDados.listarAvaliacoes(currentSolutionId);
-            
-            if (resultado.success && resultado.data) {
-                renderizarAvaliacoes(grid, resultado.data);
-                calcularMediaEstrelas(resultado.data);
-            } else {
-                grid.innerHTML = '<div class="no-data">Nenhuma avaliação encontrada</div>';
-            }
-        } else {
-            // Modo demo
-            const avaliacoesDemo = JSON.parse(localStorage.getItem(`avaliacoes_${currentSolutionId}`) || '[]');
-            renderizarAvaliacoes(grid, avaliacoesDemo);
-            calcularMediaEstrelas(avaliacoesDemo);
-        }
-    } catch (error) {
-        console.error('Erro ao carregar avaliações:', error);
-        showError(grid, 'Erro ao carregar avaliações.');
-    }
-}
-
-function renderizarAvaliacoes(grid, avaliacoes) {
-    grid.innerHTML = '';
-    
-    if (avaliacoes.length === 0) {
-        const emptyCard = document.createElement('div');
-        emptyCard.className = 'avaliacao-card empty';
-        emptyCard.innerHTML = `
-            <div class="avaliacao-content">
-                <span class="avaliacao-icon">📝</span>
-                <h3>Nenhuma Avaliação</h3>
-                <p>Clique em "Nova Avaliação" para adicionar a primeira</p>
-            </div>
-        `;
-        grid.appendChild(emptyCard);
-        return;
-    }
-    
-    avaliacoes.forEach(avaliacao => {
-        const card = document.createElement('div');
-        card.className = 'avaliacao-card';
-        
-        const estrelas = '★'.repeat(avaliacao.estrelas) + '☆'.repeat(5 - avaliacao.estrelas);
-        
-        card.innerHTML = `
-            <div class="avaliacao-header">
-                <span class="avaliador">${avaliacao.avaliador || 'Avaliador'}</span>
-                <span class="data">${formatarData(avaliacao.dataRegistro)}</span>
-            </div>
-            <div class="estrelas-avaliacao">${estrelas}</div>
-            <div class="comentario">${avaliacao.comentario || 'Sem comentário'}</div>
-        `;
-        
-        grid.appendChild(card);
-    });
-}
-
-function calcularMediaEstrelas(avaliacoes) {
-    if (!avaliacoes || avaliacoes.length === 0) {
-        updateEstrelasMedia(0);
-        return;
-    }
-    
-    const soma = avaliacoes.reduce((total, av) => total + (av.estrelas || 0), 0);
-    const media = soma / avaliacoes.length;
-    updateEstrelasMedia(media);
-}
-
-function updateEstrelasMedia(media) {
-    const container = document.getElementById('estrelasMedia');
-    if (!container) return;
-    
-    container.innerHTML = '';
-    const estrelasInteiras = Math.floor(media);
-    const temMeia = media % 1 >= 0.5;
-    
-    for (let i = 0; i < 5; i++) {
-        const estrela = document.createElement('span');
-        estrela.className = 'estrela-media';
-        
-        if (i < estrelasInteiras) {
-            estrela.textContent = '★';
-        } else if (i === estrelasInteiras && temMeia) {
-            estrela.textContent = '⭐';
-        } else {
-            estrela.textContent = '☆';
-        }
-        
-        container.appendChild(estrela);
-    }
-    
-    const texto = document.createElement('span');
-    texto.className = 'media-texto';
-    texto.textContent = ` (${media.toFixed(1)})`;
-    container.appendChild(texto);
-}
-
-function setupAvaliacaoListeners() {
-    // Botão Nova Avaliação
-    document.getElementById('btnNovaAvaliacao').addEventListener('click', openNovaAvaliacaoPopup);
-    
-    // Botão Voltar
-    document.getElementById('btnVoltar').addEventListener('click', () => {
-        window.location.href = 'index.html';
-    });
-    
-    // Configurar estrelas no popup
-    setupEstrelasInput();
-}
-
-function setupEstrelasInput() {
-    const estrelasContainer = document.querySelector('.estrelas-input');
-    if (!estrelasContainer) return;
-    
-    const estrelas = estrelasContainer.querySelectorAll('.estrela');
-    const estrelasValue = document.getElementById('estrelasValue');
-    
-    estrelas.forEach(estrela => {
-        estrela.addEventListener('click', function() {
-            const valor = parseInt(this.getAttribute('data-value'));
-            
-            // Atualizar visual das estrelas
-            estrelas.forEach((e, index) => {
-                if (index < valor) {
-                    e.textContent = '★';
-                    e.style.color = '#FFD700';
-                } else {
-                    e.textContent = '☆';
-                    e.style.color = '#ccc';
-                }
-            });
-            
-            estrelasValue.value = valor;
-        });
-    });
-}
-
-function openNovaAvaliacaoPopup() {
-    const popup = document.getElementById('popupNovaAvaliacao');
-    if (!popup) return;
-    
-    // Resetar formulário
-    document.getElementById('avaliadorSelect').value = '';
-    document.getElementById('comentarioAvaliacao').value = '';
-    
-    // Resetar estrelas
-    const estrelas = document.querySelectorAll('.estrela');
-    estrelas.forEach(e => {
-        e.textContent = '☆';
-        e.style.color = '#ccc';
-    });
-    document.getElementById('estrelasValue').value = '0';
-    
-    popup.style.display = 'flex';
-    
-    // Configurar botões do popup
-    document.getElementById('btnCancelarAvaliacao').onclick = () => {
-        popup.style.display = 'none';
-    };
-    
-    document.getElementById('btnSalvarAvaliacao').onclick = salvarNovaAvaliacao;
-}
-
-async function salvarNovaAvaliacao() {
-    const avaliador = document.getElementById('avaliadorSelect').value;
-    const comentario = document.getElementById('comentarioAvaliacao').value;
-    const estrelas = parseInt(document.getElementById('estrelasValue').value);
-    
-    if (!avaliador || !comentario || estrelas === 0) {
-        showNotification('Preencha todos os campos da avaliação', 'warning');
-        return;
-    }
-    
-    const avaliacaoData = {
-        avaliador,
-        comentario,
-        estrelas,
-        dataRegistro: new Date().toISOString()
-    };
-    
-    try {
-        if (typeof BancoDeDados !== 'undefined') {
-            const resultado = await BancoDeDados.salvarAvaliacao(currentSolutionId, avaliacaoData);
-            
-            if (resultado.success) {
-                showNotification('Avaliação salva com sucesso!', 'success');
-                document.getElementById('popupNovaAvaliacao').style.display = 'none';
-                carregarAvaliacoes();
-            } else {
-                throw new Error(resultado.error);
-            }
-        } else {
-            // Modo demo
-            const avaliacoes = JSON.parse(localStorage.getItem(`avaliacoes_${currentSolutionId}`) || '[]');
-            avaliacoes.push({
-                ...avaliacaoData,
-                docId: generateId()
-            });
-            localStorage.setItem(`avaliacoes_${currentSolutionId}`, JSON.stringify(avaliacoes));
-            
-            showNotification('Avaliação salva (modo demo)', 'success');
-            document.getElementById('popupNovaAvaliacao').style.display = 'none';
-            carregarAvaliacoes();
-        }
-    } catch (error) {
-        console.error('Erro ao salvar avaliação:', error);
-        showNotification('Erro ao salvar avaliação', 'error');
-    }
-}
-
-// ============================================================================
-// PÁGINA HISTÓRICO (historico.html) - NOVA FUNCIONALIDADE
-// ============================================================================
-
-function initHistoricoPage() {
-    const urlParams = new URLSearchParams(window.location.search);
-    currentSolutionId = urlParams.get('id') || localStorage.getItem('historicoSolutionId');
-    
-    if (!currentSolutionId) {
-        showNotification('Nenhuma solução selecionada para histórico', 'error');
-        setTimeout(() => window.location.href = 'index.html', 2000);
-        return;
-    }
-    
-    carregarRelatorios();
-    setupHistoricoListeners();
-}
-
-async function carregarRelatorios() {
-    const container = document.getElementById('historicoContainer');
-    if (!container) return;
-    
-    showLoading(container);
-    
-    try {
-        if (typeof BancoDeDados !== 'undefined') {
-            const resultado = await BancoDeDados.listarRelatorios(currentSolutionId);
-            
-            if (resultado.success && resultado.data) {
-                renderizarRelatorios(container, resultado.data);
-            } else {
-                container.innerHTML = '<div class="no-data">Nenhum relatório encontrado</div>';
-            }
-        } else {
-            const relatoriosDemo = JSON.parse(localStorage.getItem(`relatorios_${currentSolutionId}`) || '[]');
-            renderizarRelatorios(container, relatoriosDemo);
-        }
-    } catch (error) {
-        console.error('Erro ao carregar relatórios:', error);
-        showError(container, 'Erro ao carregar relatórios.');
-    }
-}
-
-function renderizarRelatorios(container, relatorios) {
-    container.innerHTML = '';
-    
-    if (relatorios.length === 0) {
-        const emptyCard = document.createElement('div');
-        emptyCard.className = 'relatorio-card empty';
-        emptyCard.innerHTML = `
-            <div class="relatorio-content">
-                <span class="relatorio-icon">📋</span>
-                <h3>Nenhum Relatório</h3>
-                <p>Clique em "Adicionar Relatório" para criar o primeiro</p>
-            </div>
-        `;
-        container.appendChild(emptyCard);
-        return;
-    }
-    
-    relatorios.forEach(relatorio => {
-        const card = document.createElement('div');
-        card.className = 'relatorio-card';
-        card.dataset.docId = relatorio.docId;
-        
-        card.innerHTML = `
-            <div class="relatorio-header">
-                <h3 class="relatorio-titulo">${relatorio.titulo || 'Sem título'}</h3>
-                <button class="delete-relatorio-btn" title="Excluir relatório">🗑️</button>
-            </div>
-            <div class="relatorio-meta">
-                <span class="relatorio-autor">${relatorio.autor || 'Autor desconhecido'}</span>
-                <span class="relatorio-data">${formatarData(relatorio.dataRegistro)}</span>
-            </div>
-            <div class="relatorio-descricao">${relatorio.descricao || 'Sem descrição'}</div>
-        `;
-        
-        // Evento para excluir relatório
-        const deleteBtn = card.querySelector('.delete-relatorio-btn');
-        deleteBtn.addEventListener('click', () => {
-            const docId = relatorio.docId;
-            openConfirmarExclusaoPopup(docId, card);
-        });
-        
-        container.appendChild(card);
-    });
-}
-
-function setupHistoricoListeners() {
-    // Botão Adicionar Relatório
-    document.getElementById('btnAdicionarRelatorio').addEventListener('click', openAdicionarRelatorioPopup);
-    
-    // Botão Voltar
-    document.getElementById('btnVoltarHistorico').addEventListener('click', () => {
-        window.location.href = 'index.html';
-    });
-}
-
-function openAdicionarRelatorioPopup() {
-    const popup = document.getElementById('popupRelatorio');
-    if (!popup) return;
-    
-    // Resetar formulário
-    document.getElementById('tituloRelatorio').value = '';
-    document.getElementById('autorRelatorio').value = '';
-    document.getElementById('descricaoRelatorio').value = '';
-    
-    popup.style.display = 'flex';
-    
-    document.getElementById('btnCancelarRelatorio').onclick = () => {
-        popup.style.display = 'none';
-    };
-    
-    document.getElementById('btnSalvarRelatorio').onclick = salvarNovoRelatorio;
-}
-
-async function salvarNovoRelatorio() {
-    const titulo = document.getElementById('tituloRelatorio').value.trim();
-    const autor = document.getElementById('autorRelatorio').value.trim();
-    const descricao = document.getElementById('descricaoRelatorio').value.trim();
-    
-    if (!titulo || !autor || !descricao) {
-        showNotification('Preencha todos os campos do relatório', 'warning');
-        return;
-    }
-    
-    const relatorioData = {
-        titulo,
-        autor,
-        descricao,
-        dataRegistro: new Date().toISOString()
-    };
-    
-    try {
-        if (typeof BancoDeDados !== 'undefined') {
-            const resultado = await BancoDeDados.salvarRelatorio(currentSolutionId, relatorioData);
-            
-            if (resultado.success) {
-                showNotification('Relatório salvo com sucesso!', 'success');
-                document.getElementById('popupRelatorio').style.display = 'none';
-                carregarRelatorios();
-            } else {
-                throw new Error(resultado.error);
-            }
-        } else {
-            const relatorios = JSON.parse(localStorage.getItem(`relatorios_${currentSolutionId}`) || '[]');
-            relatorios.push({
-                ...relatorioData,
-                docId: generateId()
-            });
-            localStorage.setItem(`relatorios_${currentSolutionId}`, JSON.stringify(relatorios));
-            
-            showNotification('Relatório salvo (modo demo)', 'success');
-            document.getElementById('popupRelatorio').style.display = 'none';
-            carregarRelatorios();
-        }
-    } catch (error) {
-        console.error('Erro ao salvar relatório:', error);
-        showNotification('Erro ao salvar relatório', 'error');
-    }
-}
-
-function openConfirmarExclusaoPopup(docId, cardElement) {
-    const popup = document.getElementById('popupConfirmarExclusao');
-    if (!popup) return;
-    
-    popup.style.display = 'flex';
-    
-    document.getElementById('btnCancelarExclusao').onclick = () => {
-        popup.style.display = 'none';
-    };
-    
-    document.getElementById('btnConfirmarExclusao').onclick = async () => {
+    // 1. Tentar carregar do Firebase (modo edição)
+    if (editMode && currentSolutionId && typeof BancoDeDados !== 'undefined') {
         try {
-            if (typeof BancoDeDados !== 'undefined') {
-                const resultado = await BancoDeDados.excluirRelatorio(docId);
+            console.log(`🔍 Buscando canvas no banco para ID: ${currentSolutionId}`);
+            const resultado = await BancoDeDados.obterCanvas(currentSolutionId);
+            
+            if (resultado.success && resultado.data) {
+                console.log('✅ Dados do canvas encontrados no banco');
                 
-                if (resultado.success) {
-                    showNotification('Relatório excluído com sucesso!', 'success');
-                    popup.style.display = 'none';
-                    carregarRelatorios();
-                } else {
-                    throw new Error(resultado.error);
-                }
-            } else {
-                // Modo demo
-                const relatorios = JSON.parse(localStorage.getItem(`relatorios_${currentSolutionId}`) || '[]');
-                const novosRelatorios = relatorios.filter(r => r.docId !== docId);
-                localStorage.setItem(`relatorios_${currentSolutionId}`, JSON.stringify(novosRelatorios));
+                // Preencher canvasData com dados do banco
+                camposCanvas.forEach(campo => {
+                    if (resultado.data[campo] !== undefined) {
+                        canvasData[campo] = resultado.data[campo];
+                    }
+                });
                 
-                showNotification('Relatório excluído (modo demo)', 'success');
-                popup.style.display = 'none';
-                cardElement.remove();
+                console.log('📊 CanvasData após carregar do banco:', canvasData);
             }
         } catch (error) {
-            console.error('Erro ao excluir relatório:', error);
-            showNotification('Erro ao excluir relatório', 'error');
+            console.error('❌ Erro ao carregar canvas do banco:', error);
         }
-    };
-}
-
-// ============================================================================
-// FUNÇÕES AUXILIARES GLOBAIS
-// ============================================================================
-
-function formatarData(dataString) {
-    if (!dataString) return 'Data desconhecida';
-    
-    try {
-        const data = new Date(dataString);
-        return data.toLocaleDateString('pt-BR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    } catch (e) {
-        return dataString;
     }
+    
+    // 2. Tentar carregar do localStorage
+    const canvasLocal = localStorage.getItem('canvasData');
+    if (canvasLocal) {
+        try {
+            const dadosLocal = JSON.parse(canvasLocal);
+            console.log('💾 Dados do canvas encontrados no localStorage');
+            
+            // Mesclar com dados locais (preservando dados do banco se existirem)
+            camposCanvas.forEach(campo => {
+                if (dadosLocal[campo] !== undefined && !canvasData[campo]) {
+                    canvasData[campo] = dadosLocal[campo];
+                }
+            });
+        } catch (error) {
+            console.error('❌ Erro ao parsear dados do localStorage:', error);
+        }
+    }
+    
+    // 3. Atualizar UI
+    updateCanvasUI();
+    
+    // 4. Logar dados no console (PROBLEMA 03)
+    logCanvasData();
 }
 
-function showNotification(message, type = 'info') {
-    const existing = document.getElementById('global-notification');
-    if (existing) existing.remove();
+function updateCanvasUI() {
+    console.log('🔄 Atualizando UI do Canvas...');
     
-    const notification = document.createElement('div');
-    notification.id = 'global-notification';
-    notification.className = `notification ${type}`;
-    notification.innerHTML = `
-        <div class="notification-content">
-            <span class="notification-icon">${getNotificationIcon(type)}</span>
-            <span class="notification-text">${message}</span>
+    // Para cada campo no canvasData
+    Object.keys(canvasData).forEach(campo => {
+        const elemento = document.getElementById(campo);
+        if (elemento) {
+            const paragrafo = elemento.querySelector('p');
+            if (paragrafo) {
+                const valor = canvasData[campo] || '';
+                
+                // Truncar texto para preview (PROBLEMA 03)
+                if (valor.length > 50) {
+                    paragrafo.textContent = valor.substring(0, 50) + '...';
+                    paragrafo.title = valor; // Tooltip com texto completo
+                } else {
+                    paragrafo.textContent = valor || 'Clique para editar...';
+                }
+                
+                console.log(`✅ Campo "${campo}" atualizado: ${paragrafo.textContent}`);
+            }
+        }
+    });
+}
+
+function logCanvasData() {
+    console.log('📋 === DADOS DO CANVAS ===');
+    console.log(`publico-alvo: ${canvasData['publico-alvo']}`);
+    console.log(`problema-resolve: ${canvasData['problema-resolve']}`);
+    console.log(`formato-solucao: ${canvasData['formato-solucao']}`);
+    console.log(`funcionalidades: ${canvasData['funcionalidades']}`);
+    console.log(`modelo-negocio: ${canvasData['modelo-negocio']}`);
+    console.log(`trl-atual: ${canvasData['trl-atual']}`);
+    console.log(`trl-esperada: ${canvasData['trl-esperada']}`);
+    console.log(`link-prototipo: ${canvasData['link-prototipo']}`);
+    console.log(`link-pitch: ${canvasData['link-pitch']}`);
+    console.log(`link-pdf: ${canvasData['link-pdf']}`);
+    console.log(`escalabilidade: ${canvasData['escalabilidade']}`);
+    console.log('==========================');
+}
+
+function setupCanvasInteractions() {
+    const idsCanvas = [
+        'publico-alvo',
+        'problema-resolve', 
+        'formato-solucao',
+        'funcionalidades',
+        'modelo-negocio',
+        'trl-atual',
+        'trl-esperada',
+        'link-prototipo',
+        'link-pitch',
+        'link-pdf',
+        'escalabilidade'
+    ];
+    
+    idsCanvas.forEach(id => {
+        const elemento = document.getElementById(id);
+        if (elemento) {
+            elemento.addEventListener('click', () => {
+                const titulo = elemento.querySelector('h3').textContent;
+                abrirEditorCanvas(id, titulo);
+            });
+        }
+    });
+}
+
+function abrirEditorCanvas(id, titulo) {
+    console.log(`✏️ Abrindo editor para: ${id}`);
+    
+    const overlay = document.createElement('div');
+    overlay.className = 'popup-overlay';
+    overlay.style.display = 'flex';
+    
+    const valorAtual = canvasData[id] || '';
+    
+    overlay.innerHTML = `
+        <div class="popup-content canvas-popup" style="max-width: 600px;">
+            <h3>${titulo}</h3>
+            <textarea id="canvasEditorText" 
+                      style="width:100%; height:200px; padding:10px; margin:15px 0; border-radius:5px; border:2px solid var(--cinza-medio); font-family: 'Comfortaa', cursive;"
+                      placeholder="Digite aqui...">${valorAtual}</textarea>
+            <div class="popup-buttons">
+                <button class="btn btn-secondary" id="btnCancelarCanvas">Cancelar</button>
+                <button class="btn btn-primary" id="btnSalvarCanvas">Salvar</button>
+            </div>
         </div>
     `;
     
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: ${type === 'success' ? '#4CAF50' : type === 'error' ? '#f44336' : '#FF9800'};
-        color: white;
-        padding: 15px 20px;
-        border-radius: var(--borda-arredondada);
-        box-shadow: var(--sombra-media);
-        z-index: 9999;
-        animation: slideIn 0.3s ease;
-        font-family: 'Comfortaa', cursive;
-        max-width: 300px;
-    `;
+    document.body.appendChild(overlay);
     
-    document.body.appendChild(notification);
+    // Focar no textarea
+    const textarea = overlay.querySelector('#canvasEditorText');
+    textarea.focus();
     
-    setTimeout(() => {
-        if (notification.parentNode) {
-            notification.style.animation = 'slideOut 0.3s ease';
-            setTimeout(() => {
-                if (notification.parentNode) notification.remove();
-            }, 300);
+    // Botão Cancelar
+    overlay.querySelector('#btnCancelarCanvas').addEventListener('click', () => {
+        document.body.removeChild(overlay);
+    });
+    
+    // Botão Salvar
+    overlay.querySelector('#btnSalvarCanvas').addEventListener('click', () => {
+        const novoValor = textarea.value.trim();
+        
+        // Atualizar canvasData
+        canvasData[id] = novoValor;
+        
+        // Salvar no localStorage
+        localStorage.setItem('canvasData', JSON.stringify(canvasData));
+        
+        // Atualizar UI
+        updateCanvasUI();
+        
+        // Logar dados atualizados (PROBLEMA 03)
+        logCanvasData();
+        
+        // Fechar overlay
+        document.body.removeChild(overlay);
+        
+        // Mostrar notificação
+        mostrarNotificacao('✅ Campo atualizado!', 'success');
+    });
+    
+    // Fechar com ESC
+    overlay.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            document.body.removeChild(overlay);
         }
-    }, 5000);
+    });
 }
 
-function getNotificationIcon(type) {
-    switch(type) {
-        case 'success': return '✅';
-        case 'error': return '❌';
-        case 'warning': return '⚠️';
-        default: return 'ℹ️';
+async function finalizarSalvarTudo() {
+    if (isSaving) return;
+    isSaving = true;
+    
+    const btn = document.querySelector('.btn-finalizar');
+    const textoOriginal = btn.innerHTML;
+    btn.innerHTML = '⏳ Salvando tudo...';
+    btn.disabled = true;
+    
+    console.log('🚀 Iniciando salvamento completo...');
+    
+    try {
+        // 1. Coletar todos os dados
+        const formD = JSON.parse(localStorage.getItem('formularioData') || '{}');
+        const recTexto = recursosTexto || localStorage.getItem('recursosTexto') || '';
+        const pontD = JSON.parse(localStorage.getItem('pontuacaoData') || '{}');
+        
+        // Garantir que temos os dados mais recentes do canvas
+        await loadCanvasData();
+        
+        // 2. Preparar dados da solução
+        const iconeFinal = (editMode && solucaoAtual?.icone) ? 
+            solucaoAtual.icone : (formD.icone || '💡');
+        
+        const solucaoBase = {
+            nome: formD.nomeSolucao || 'Solução Sem Nome',
+            descricao: formD.descricaoSolucao || '',
+            tipo: formD.tipoSolucao || 'Outros',
+            icone: iconeFinal,
+            score: pontD.score || 0,
+            dadosKillswitch: pontD,
+            status: 'em-analise',
+            dataAtualizacao: new Date().toISOString()
+        };
+        
+        let finalIdInterno = currentSolutionId;
+        let finalDocId = currentSolutionDocId;
+        
+        // 3. Criar ou atualizar solução principal
+        if (!editMode || !currentSolutionDocId) {
+            console.log('🆕 Criando nova solução...');
+            solucaoBase.dataCriacao = new Date().toISOString();
+            
+            const resCriacao = await BancoDeDados.adicionarSolucao(solucaoBase);
+            
+            if (resCriacao.success) {
+                finalIdInterno = resCriacao.id;
+                finalDocId = resCriacao.docId;
+                console.log(`✅ Solução criada: ID=${finalIdInterno}, DocID=${finalDocId}`);
+            } else {
+                throw new Error(resCriacao.error || 'Erro ao criar solução');
+            }
+        } else {
+            console.log('✏️ Atualizando solução existente...');
+            const resAtualizacao = await BancoDeDados.atualizarSolucao(currentSolutionDocId, solucaoBase);
+            
+            if (!resAtualizacao.success) {
+                throw new Error(resAtualizacao.error || 'Erro ao atualizar solução');
+            }
+        }
+        
+        // 4. Salvar recursos (PROBLEMA 01)
+        console.log('💾 Salvando recursos...');
+        if (recTexto.trim() && finalIdInterno) {
+            const resRecursos = await BancoDeDados.salvarRecursos(finalIdInterno, recTexto);
+            
+            if (!resRecursos.success) {
+                console.warn('⚠️ Aviso ao salvar recursos:', resRecursos.error);
+            } else {
+                console.log('✅ Recursos salvos com sucesso');
+            }
+        }
+        
+        // 5. Salvar canvas (PROBLEMA 03)
+        console.log('🎨 Salvando canvas...');
+        console.log('Dados do canvas a serem salvados:', canvasData);
+        
+        if (finalIdInterno) {
+            const resCanvas = await BancoDeDados.salvarCanvas(finalIdInterno, canvasData);
+            
+            if (!resCanvas.success) {
+                console.warn('⚠️ Aviso ao salvar canvas:', resCanvas.error);
+            } else {
+                console.log('✅ Canvas salvo com sucesso');
+            }
+        }
+        
+        // 6. Log final do canvas (PROBLEMA 03)
+        logCanvasData();
+        
+        // 7. Notificação de sucesso
+        mostrarNotificacao('✅ Solução salva com sucesso!', 'success');
+        
+        // 8. Limpar dados temporários
+        limparDadosTemporarios();
+        
+        // 9. Redirecionar para página inicial
+        setTimeout(() => {
+            window.location.href = 'index.html';
+        }, 1500);
+        
+    } catch (error) {
+        console.error('❌ Erro fatal ao salvar tudo:', error);
+        mostrarNotificacao(`❌ Erro: ${error.message}`, 'error');
+        
+        btn.innerHTML = textoOriginal;
+        btn.disabled = false;
+        isSaving = false;
     }
+}
+
+// ============================================================================
+// 9. FUNÇÕES UTILITÁRIAS
+// ============================================================================
+
+function limparDadosTemporarios() {
+    console.log('🧹 Limpando dados temporários...');
+    
+    const itensParaManter = ['solucoesDemo']; // Manter dados demo se existirem
+    
+    // Remover apenas os dados do fluxo atual
+    localStorage.removeItem('formularioData');
+    localStorage.removeItem('recursosTexto');
+    localStorage.removeItem('pontuacaoData');
+    localStorage.removeItem('canvasData');
+    localStorage.removeItem('editSolutionData');
+    
+    // Remover recursos temporários
+    if (tempSolutionId) {
+        localStorage.removeItem(`recursos_temp_${tempSolutionId}`);
+    }
+    
+    console.log('✅ Dados temporários limpos');
 }
 
 function initTooltips() {
-    // Pode ser implementado se necessário
+    // Implementação básica de tooltips
+    const tooltipElements = document.querySelectorAll('[title]');
+    
+    tooltipElements.forEach(element => {
+        element.addEventListener('mouseenter', (e) => {
+            const tooltip = document.createElement('div');
+            tooltip.className = 'tooltip';
+            tooltip.textContent = e.target.title;
+            tooltip.style.cssText = `
+                position: absolute;
+                background: rgba(0,0,0,0.8);
+                color: white;
+                padding: 5px 10px;
+                border-radius: 4px;
+                font-size: 12px;
+                z-index: 10000;
+                pointer-events: none;
+            `;
+            
+            document.body.appendChild(tooltip);
+            
+            const rect = e.target.getBoundingClientRect();
+            tooltip.style.top = `${rect.top - tooltip.offsetHeight - 5}px`;
+            tooltip.style.left = `${rect.left + (rect.width / 2) - (tooltip.offsetWidth / 2)}px`;
+            
+            e.target._tooltip = tooltip;
+        });
+        
+        element.addEventListener('mouseleave', (e) => {
+            if (e.target._tooltip) {
+                document.body.removeChild(e.target._tooltip);
+                delete e.target._tooltip;
+            }
+        });
+    });
 }
 
-// ============================================================================
-// DEMO FUNCTIONS
-// ============================================================================
-
-function renderizarSolucoesDemo(grid) {
-    const solucoesDemo = JSON.parse(localStorage.getItem('solucoesDemo') || '[]');
-    renderizarSolucoes(grid, solucoesDemo);
-}
-
-// ============================================================================
-// ANIMAÇÕES CSS
-// ============================================================================
-
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideIn {
-        from { transform: translateX(100%); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
-    }
-    @keyframes slideOut {
-        from { transform: translateX(0); opacity: 1; }
-        to { transform: translateX(100%); opacity: 0; }
-    }
+function mostrarNotificacao(mensagem, tipo = 'info') {
+    // Implementação independente para evitar recursão
+    const tipos = {
+        success: { cor: '#00C851', icone: '✅' },
+        warning: { cor: '#FF8800', icone: '⚠️' },
+        error: { cor: '#ff4444', icone: '❌' },
+        info: { cor: '#4A90E2', icone: 'ℹ️' }
+    };
     
-    /* Estilos para avaliações */
-    .avaliacao-card {
-        background: white;
-        border-radius: var(--borda-arredondada);
-        padding: 20px;
-        margin-bottom: 15px;
-        box-shadow: var(--sombra-leve);
-        border: 1px solid var(--cinza-claro);
-    }
+    const config = tipos[tipo] || tipos.info;
     
-    .avaliacao-card.empty {
-        text-align: center;
-        padding: 40px 20px;
-        border: 2px dashed var(--cinza-medio);
-    }
-    
-    .avaliacao-header {
+    const notificacao = document.createElement('div');
+    notificacao.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        background: ${config.cor};
+        color: white;
+        border-radius: 10px;
+        z-index: 10000;
+        font-family: 'Comfortaa', cursive;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         display: flex;
-        justify-content: space-between;
-        margin-bottom: 10px;
-        font-size: 0.9em;
-        color: var(--cinza-escuro);
-    }
-    
-    .estrelas-avaliacao {
-        font-size: 1.5em;
-        color: #FFD700;
-        margin-bottom: 10px;
-    }
-    
-    .comentario {
-        line-height: 1.5;
-        color: var(--cinza-escuro);
-    }
-    
-    /* Estilos para histórico */
-    .relatorio-card {
-        background: white;
-        border-radius: var(--borda-arredondada);
-        padding: 20px;
-        margin-bottom: 15px;
-        box-shadow: var(--sombra-leve);
-        border-left: 4px solid var(--cor-laranja);
-    }
-    
-    .relatorio-card.empty {
-        text-align: center;
-        padding: 40px 20px;
-        border: 2px dashed var(--cinza-medio);
-    }
-    
-    .relatorio-header {
-        display: flex;
-        justify-content: space-between;
         align-items: center;
-        margin-bottom: 10px;
-    }
+        gap: 10px;
+        animation: slideIn 0.3s ease;
+        max-width: 400px;
+    `;
     
-    .relatorio-titulo {
-        margin: 0;
-        color: var(--cor-laranja);
-        font-size: 1.2em;
-    }
+    notificacao.innerHTML = `
+        <span style="font-size: 1.2rem;">${config.icone}</span>
+        <span>${mensagem}</span>
+    `;
     
-    .delete-relatorio-btn {
-        background: none;
-        border: none;
-        font-size: 1.2em;
-        cursor: pointer;
-        color: var(--cinza-medio);
-        transition: var(--transicao);
-    }
+    document.body.appendChild(notificacao);
     
-    .delete-relatorio-btn:hover {
-        color: #f44336;
-    }
+    // Remover após 3 segundos
+    setTimeout(() => {
+        notificacao.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => {
+            if (notificacao.parentNode) {
+                notificacao.parentNode.removeChild(notificacao);
+            }
+        }, 300);
+    }, 3000);
     
-    .relatorio-meta {
-        display: flex;
-        justify-content: space-between;
-        font-size: 0.9em;
-        color: var(--cinza-medio);
-        margin-bottom: 15px;
+    // Adicionar estilos de animação se não existirem
+    if (!document.querySelector('#animation-styles')) {
+        const style = document.createElement('style');
+        style.id = 'animation-styles';
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
     }
-    
-    .relatorio-descricao {
-        line-height: 1.6;
-        color: var(--cinza-escuro);
-        white-space: pre-line;
-    }
-    
-    /* Estrelas média */
-    .estrelas-media {
-        font-size: 2em;
-        text-align: center;
-        margin: 20px 0;
-    }
-    
-    .estrela-media {
-        margin: 0 5px;
-    }
-    
-    .media-texto {
-        font-size: 0.6em;
-        vertical-align: middle;
-        color: var(--cinza-escuro);
-    }
-`;
-document.head.appendChild(style);
+}
 
 // ============================================================================
-// EXPORTAÇÃO PARA ESCOPO GLOBAL
+// 10. EXPORTAÇÃO PARA DEBUG
 // ============================================================================
 
-window.app = {
+window.SistemaSASGP = {
+    // Estado atual
+    getEstado: () => ({
+        currentSolutionId,
+        currentSolutionDocId,
+        editMode,
+        formData,
+        recursosTexto,
+        pontuacaoData,
+        canvasData,
+        solucaoAtual
+    }),
+    
+    // Funções principais
     carregarSolucoes,
-    salvarSoluçãoCompleta,
-    calculateAndDisplayScore,
-    carregarAvaliacoes,
-    carregarRelatorios
+    finalizarSalvarTudo,
+    loadCanvasData,
+    logCanvasData: () => {
+        console.log('📋 === DADOS DO CANVAS (via SistemaSASGP) ===');
+        Object.keys(canvasData).forEach(key => {
+            console.log(`${key}: ${canvasData[key]}`);
+        });
+        console.log('=============================================');
+    },
+    
+    // Utilitários
+    limparDadosTemporarios,
+    mostrarNotificacao
 };
 
-console.log('Sistema SASGP atualizado com sucesso!');
+console.log('✅ Sistema SASGP carregado com sucesso!');
+console.log('🛠️  Para debug, use: window.SistemaSASGP');

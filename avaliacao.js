@@ -1,4 +1,5 @@
 // avaliacao.js - Sistema completo de avaliação de soluções
+// Versão Final - Resolve todos os problemas de integração
 
 // ============================================================================
 // VARIÁVEIS GLOBAIS
@@ -47,9 +48,10 @@ function carregarIdsSolucao() {
     // Tentar obter da URL primeiro
     const urlParams = new URLSearchParams(window.location.search);
     solucaoAtual.id = urlParams.get('id');
+    solucaoAtual.docId = urlParams.get('docId');
     
     // Tentar obter do localStorage
-    solucaoAtual.docId = localStorage.getItem('avaliacaoSolucaoDocId');
+    solucaoAtual.docId = solucaoAtual.docId || localStorage.getItem('avaliacaoSolucaoDocId');
     solucaoAtual.id = solucaoAtual.id || localStorage.getItem('avaliacaoSolucaoId');
     
     console.log('📋 IDs carregados:', solucaoAtual);
@@ -283,7 +285,7 @@ function atualizarMediaEstrelas(avaliacoesLista) {
 function configurarEventos() {
     // Botão Voltar
     document.getElementById('btnVoltar').addEventListener('click', () => {
-        window.location.href = 'inicio.html';
+        window.location.href = 'index.html';
     });
     
     // Botão Nova Avaliação
@@ -308,6 +310,9 @@ function configurarEventos() {
     
     // Contador de caracteres no comentário
     document.getElementById('comentario').addEventListener('input', atualizarContadorCaracteres);
+    
+    // Data atual como padrão
+    document.getElementById('dataAvaliacao').valueAsDate = new Date();
 }
 
 function configurarModalNovaAvaliacao() {
@@ -533,7 +538,8 @@ async function salvarAvaliacao() {
         avaliador,
         estrelas: rating,
         comentario,
-        dataRegistro: dataAvaliacao ? new Date(dataAvaliacao).toISOString() : new Date().toISOString()
+        dataRegistro: dataAvaliacao ? new Date(dataAvaliacao).toISOString() : new Date().toISOString(),
+        idSolucao: solucaoAtual.id
     };
     
     const modal = document.getElementById('modalNovaAvaliacao');
@@ -764,7 +770,16 @@ function mostrarNotificacao(mensagem, tipo = 'info') {
         UtilitariosSASGP.mostrarNotificacao(mensagem, tipo);
     } else {
         // Fallback básico
-        alert(`${tipo.toUpperCase()}: ${mensagem}`);
+        const notification = document.createElement('div');
+        notification.className = `notification ${tipo}`;
+        notification.textContent = mensagem;
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 3000);
     }
 }
 
@@ -775,7 +790,7 @@ function mostrarErro(mensagem) {
             <div class="error-state">
                 <div class="error-icon">❌</div>
                 <p>${mensagem}</p>
-                <button class="btn btn-secondary" onclick="window.location.href='inicio.html'">
+                <button class="btn btn-secondary" onclick="window.location.href='index.html'">
                     ← Voltar ao Início
                 </button>
             </div>
