@@ -10,6 +10,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
     <script src="banco.js" defer></script>
     <script src="script.js" defer></script>
+    <script src="utilitarios.js" defer></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -21,14 +22,16 @@
         
         <main>
             <div class="grid-container" id="solutionsGrid">
-                </div>
+                <!-- As soluções serão carregadas aqui -->
+            </div>
         </main>
         
         <footer>
-            <p>Sistema de Inovação SASGP &copy; 2024</p>
+            <p>Sistema de Inovação SASGP &copy; 2026</p>
         </footer>
     </div>
 
+    <!-- Menu de Contexto -->
     <div id="contextMenu" class="context-menu">
         <div class="context-menu-item" id="ctxRename">
             <span>✏️</span> Renomear Solução
@@ -41,6 +44,7 @@
         </div>
     </div>
 
+    <!-- Popup Renomear -->
     <div id="popupRename" class="popup-overlay">
         <div class="popup-content">
             <h3>Mudar nome da solução</h3>
@@ -54,10 +58,13 @@
         </div>
     </div>
 
+    <!-- Popup Ícone -->
     <div id="popupIcon" class="popup-overlay">
-        <div class="popup-content" style="max-width: 600px;"> <h3>Escolha um ícone</h3>
+        <div class="popup-content" style="max-width: 600px;">
+            <h3>Escolha um ícone</h3>
             <div class="icon-grid" id="iconGrid">
-                </div>
+                <!-- Ícones serão carregados aqui -->
+            </div>
             <div class="popup-buttons">
                 <button class="btn btn-cancel" id="btnCancelIcon">Cancelar</button>
                 <button class="btn btn-primary" id="btnSaveIcon">Salvar</button>
@@ -65,16 +72,16 @@
         </div>
     </div>
 
+    <!-- Popup Excluir -->
     <div id="popupDelete" class="popup-overlay">
         <div class="popup-content">
             <h3>Excluir solução</h3>
-            <p>Caso deseja excluir a solução, a solução não poderá ser resgatada.</p>
+            <p>Caso deseje excluir a solução, a solução não poderá ser resgatada.</p>
             <div class="popup-buttons">
                 <button class="btn btn-cancel" id="btnCancelDelete">Cancelar</button>
                 <button class="btn btn-primary" id="btnConfirmDelete" style="background: #ff4444;">Apagar</button>
             </div>
         </div>
     </div>
-
 </body>
 </html>

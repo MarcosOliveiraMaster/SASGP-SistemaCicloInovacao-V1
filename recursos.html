@@ -3,34 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <title>Recursos - SASGP</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
     <script src="banco.js" defer></script>
     <script src="script.js" defer></script>
+    <script src="utilitarios.js" defer></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container container-wide">
+    <div class="container">
         <div class="form-container wide">
             <h2 class="form-title">Mapeamento de Recursos da Solução</h2>
-            <p class="form-description">Descreva os recursos que serão exigidos para a solução.</p>
+            <p class="form-description">Descreva os recursos necessários para viabilizar a solução.</p>
             
-            <div class="table-container">
-                <table class="resources-table" id="resourcesTable">
-                    <thead>
-                        <tr>
-                            <th width="30%">Tipo do Recurso</th>
-                            <th width="60%">Descrição</th>
-                            <th width="10%">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        </tbody>
-                </table>
-                
-                <button class="add-row-btn" id="addRowBtn">+</button>
+            <div class="form-group">
+                <textarea 
+                    id="recursosTexto" 
+                    class="recursos-textarea" 
+                    placeholder="Descreva aqui os recursos de tempo e equipe que serão necessário para o desenvolvimento da solução"></textarea>
             </div>
             
             <div class="btn-container">
