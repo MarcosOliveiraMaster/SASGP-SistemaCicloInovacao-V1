@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Histórico - SASGP</title>
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+    <script src="banco.js" defer></script>
+    <script src="script.js" defer></script>
+    <script src="utilitarios.js" defer></script>
+    <script src="script-extra.js" defer></script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style-extra.css">
+</head>
+<body>
+    <div class="container">
+        <div class="historico-container">
+            <!-- Banner Superior -->
+            <div class="historico-header">
+                <div>
+                    <h1>Histórico da Solução</h1>
+                    <p id="nomeSolucaoHistorico" class="subtitle">Carregando...</p>
+                </div>
+                <button class="btn btn-voltar" onclick="window.location.href='index.html'">
+                    ← Voltar
+                </button>
+            </div>
+
+            <!-- Informações da Solução -->
+            <div class="historico-info-grid">
+                <div class="info-card">
+                    <h3>Status Atual</h3>
+                    <div class="status-indicator">
+                        <div class="status-dot" id="statusDotHistorico"></div>
+                        <span class="status-text" id="statusTextHistorico">Carregando...</span>
+                    </div>
+                </div>
+                <div class="info-card">
+                    <h3>Tipo de Solução</h3>
+                    <p id="tipoSolucao">-</p>
+                </div>
+                <div class="info-card">
+                    <h3>Última Atualização</h3>
+                    <p id="ultimaAtualizacao">--/--/----</p>
+                </div>
+            </div>
+
+            <!-- Filtros e Ordenação -->
+            <div class="filters-container">
+                <select id="filterAutorHistorico" class="filter-select">
+                    <option value="todos">Todos os Autores</option>
+                    <option value="Simone">Simone</option>
+                    <option value="Gabriel">Gabriel</option>
+                    <option value="Diego">Diego</option>
+                    <option value="Emily">Emily</option>
+                </select>
+                <select id="filterOrdenacao" class="filter-select">
+                    <option value="desc">Mais Recentes Primeiro</option>
+                    <option value="asc">Mais Antigos Primeiro</option>
+                </select>
+                <button class="btn btn-secondary" id="btnFiltrarHistorico">Filtrar</button>
+                <button class="btn btn-secondary" id="btnRecarregarHistoricos" title="Recarregar histórico">
+                    🔄 Atualizar
+                </button>
+                <button class="btn btn-primary" id="btnAdicionarHistorico">
+                    + Adicionar Etapa
+                </button>
+            </div>
+
+            <!-- Grid de Cards de Histórico -->
+            <div class="historicos-grid" id="historicosGrid">
+                <!-- Cards serão carregados aqui -->
+            </div>
+
+            <!-- Mensagem quando não houver histórico -->
+            <div id="semHistoricos" class="sem-historicos" style="display: none;">
+                <div style="font-size: 3rem; margin-bottom: 20px;">📋</div>
+                <h3>Nenhum registro no histórico</h3>
+                <p>Adicione a primeira etapa de desenvolvimento!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Adicionar Histórico -->
+    <div id="modalHistorico" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Nova Etapa de Desenvolvimento</h3>
+                <button class="close-modal" id="closeModalHistorico">×</button>
+            </div>
+            
+            <div class="form-group">
+                <label for="selectAutorHistorico" class="rating-label">Autor</label>
+                <select id="selectAutorHistorico" class="filter-select">
+                    <option value="Simone">Simone</option>
+                    <option value="Gabriel">Gabriel</option>
+                    <option value="Diego">Diego</option>
+                    <option value="Emily">Emily</option>
+                    <option value="Outro">Outro</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="tituloHistorico" class="rating-label">Título/Rótulo</label>
+                <input type="text" id="tituloHistorico" placeholder="Ex: Reunião de alinhamento, Protótipo inicial..." maxlength="100">
+                <div class="char-counter">
+                    <span id="charCountTitulo">0</span>/100 caracteres
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="comentarioHistorico" class="rating-label">Descrição da Etapa</label>
+                <textarea 
+                    id="comentarioHistorico" 
+                    placeholder="Descreva os detalhes desta etapa de desenvolvimento..."
+                    maxlength="1000"
+                    rows="5"></textarea>
+                <div class="char-counter">
+                    <span id="charCountHistorico">0</span>/1000 caracteres
+                </div>
+            </div>
+
+            <div class="modal-buttons">
+                <button class="btn btn-cancel" id="cancelHistorico">Cancelar</button>
+                <button class="btn btn-primary" id="salvarHistorico">Salvar Etapa</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Ver Detalhes do Histórico -->
+    <div id="modalDetalhesHistorico" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Detalhes do Histórico</h3>
+                <button class="close-modal" id="closeModalDetalhesHistorico">×</button>
+            </div>
+            
+            <div class="detalhes-avaliacao">
+                <div class="detalhes-item">
+                    <label>Autor</label>
+                    <p id="detalheAutorHistorico">-</p>
+                </div>
+                <div class="detalhes-item">
+                    <label>Título</label>
+                    <p id="detalheTituloHistorico">-</p>
+                </div>
+                <div class="detalhes-item">
+                    <label>Data</label>
+                    <p id="detalheDataHistorico">-</p>
+                </div>
+                <div class="detalhes-item">
+                    <label>Descrição</label>
+                    <p id="detalheDescricaoHistorico">-</p>
+                </div>
+            </div>
+
+            <div class="modal-buttons">
+                <button class="btn btn-primary" id="fecharDetalhesHistorico">Fechar</button>
+                <button class="btn btn-secondary" id="excluirHistorico" style="background: #ff4444; color: white;">
+                    Excluir Registro
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmação de Exclusão do Histórico -->
+    <div id="modalConfirmacaoExclusaoHistorico" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Confirmar Exclusão</h3>
+                <button class="close-modal" id="closeModalConfirmacaoHistorico">×</button>
+            </div>
+            
+            <p class="confirmacao-texto">
+                Tem certeza que deseja excluir este registro do histórico? Esta ação não pode ser desfeita.
+            </p>
+
+            <div class="modal-buttons">
+                <button class="btn btn-cancel" id="cancelarExclusaoHistorico">Cancelar</button>
+                <button class="btn btn-primary" id="confirmarExclusaoHistorico" style="background: #ff4444; color: white;">
+                    Excluir Permanentemente
+                </button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

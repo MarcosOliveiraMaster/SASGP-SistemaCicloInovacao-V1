@@ -1,4 +1,4 @@
-// banco.js - Camada de Dados SASGP (Versão Final Corrigida)
+// banco.js - Camada de Dados SASGP (Versão Final Corrigida e Completa)
 
 // ============================================================================
 // 1. CONFIGURAÇÃO DO FIREBASE
@@ -179,7 +179,7 @@ async function atualizarSolucao(docId, dados) {
 }
 
 // ============================================================================
-// 4. RECURSOS (TEXTO SIMPLES) - PROBLEMA 01 CORRIGIDO
+// 4. RECURSOS (TEXTO SIMPLES)
 // ============================================================================
 
 async function salvarRecursos(idSolucao, textoRecursos) {
@@ -256,7 +256,7 @@ async function obterRecursos(idSolucao) {
 }
 
 // ============================================================================
-// 5. CANVAS DE PRODUTO - PROBLEMA 03 CORRIGIDO
+// 5. CANVAS DE PRODUTO
 // ============================================================================
 
 async function salvarCanvas(idSolucao, canvasData) {
@@ -300,7 +300,7 @@ async function salvarCanvas(idSolucao, canvasData) {
         
         console.log(`✅ Canvas salvo com sucesso! DocID: ${docRef.id}`);
         
-        // 6. Logar no console conforme solicitado
+        // 6. Logar no console
         console.log("📋 === DADOS DO CANVAS SALVOS ===");
         camposCanvas.forEach(campo => {
             console.log(`${campo}: ${dadosParaSalvar[campo]}`);
@@ -381,7 +381,8 @@ async function excluirSolucaoCompleta(docId, idInterno) {
             console.log("🧹 Limpando coleções filhas...");
             await deletarColecaoPorIdSolucao("RecursosSolucao", idInterno);
             await deletarColecaoPorIdSolucao("CanvasSolucao", idInterno);
-            await deletarColecaoPorIdSolucao("PontuacaoSolucao", idInterno); // Limpeza de legado
+            await deletarColecaoPorIdSolucao("Avaliacoes", idInterno);
+            await deletarColecaoPorIdSolucao("Historicos", idInterno);
             console.log("✅ Coleções filhas limpas");
         }
 
@@ -426,16 +427,17 @@ async function excluirSolucao(docId) {
 }
 
 // ============================================================================
-// 7. FUNÇÕES DE AVALIAÇÃO (para compatibilidade)
+// 7. FUNÇÕES DE AVALIAÇÃO (CORRIGIDAS - SEM NECESSIDADE DE ÍNDICES COMPOSTOS)
 // ============================================================================
 
 async function listarAvaliacoes(idSolucao) {
     try {
         console.log(`⭐ Listando avaliações para solução ${idSolucao}`);
         
+        // Método alternativo que não requer índice composto
+        // Primeiro filtramos por idSolucao, depois ordenamos localmente
         const snapshot = await db.collection("Avaliacoes")
             .where("idSolucao", "==", idSolucao)
-            .orderBy("dataRegistro", "desc")
             .get();
             
         const lista = [];
@@ -446,6 +448,13 @@ async function listarAvaliacoes(idSolucao) {
                 ...data,
                 dataRegistro: data.dataRegistro ? data.dataRegistro.toDate().toISOString() : ''
             });
+        });
+        
+        // Ordenar manualmente por data (mais recente primeiro)
+        lista.sort((a, b) => {
+            const dateA = new Date(a.dataRegistro);
+            const dateB = new Date(b.dataRegistro);
+            return dateB - dateA; // Ordem descendente
         });
         
         console.log(`✅ ${lista.length} avaliação(ões) encontrada(s)`);
@@ -468,6 +477,7 @@ async function listarAvaliacoes(idSolucao) {
 async function salvarAvaliacao(idSolucao, avaliacaoData) {
     try {
         console.log(`⭐ Salvando avaliação para solução ${idSolucao}`);
+        console.log('📤 Dados da avaliação recebidos:', avaliacaoData);
         
         const dadosCompletos = {
             idSolucao: idSolucao,
@@ -480,9 +490,12 @@ async function salvarAvaliacao(idSolucao, avaliacaoData) {
         const docRef = await db.collection("Avaliacoes").add(dadosCompletos);
         
         console.log(`✅ Avaliação salva com sucesso! DocID: ${docRef.id}`);
+        console.log('📄 Dados salvos na coleção Avaliacoes:', dadosCompletos);
+        
         return { 
             success: true, 
             docId: docRef.id,
+            data: dadosCompletos,
             message: "Avaliação salva com sucesso"
         };
     } catch (error) {
@@ -515,6 +528,111 @@ async function excluirRelatorio(docId) {
     }
 }
 
+// ============================================================================
+// 8. FUNÇÕES DE HISTÓRICO (CORRIGIDAS - SEM NECESSIDADE DE ÍNDICES COMPOSTOS)
+// ============================================================================
+
+async function listarHistoricos(idSolucao) {
+    try {
+        console.log(`📋 Listando histórico para solução ${idSolucao}`);
+        
+        // Método alternativo que não requer índice composto
+        const snapshot = await db.collection("Historicos")
+            .where("idSolucao", "==", idSolucao)
+            .get();
+            
+        const lista = [];
+        snapshot.forEach((doc) => {
+            const data = doc.data();
+            lista.push({
+                docId: doc.id,
+                ...data,
+                dataRegistro: data.dataRegistro ? data.dataRegistro.toDate().toISOString() : ''
+            });
+        });
+        
+        // Ordenar manualmente por data (mais recente primeiro)
+        lista.sort((a, b) => {
+            const dateA = new Date(a.dataRegistro);
+            const dateB = new Date(b.dataRegistro);
+            return dateB - dateA; // Ordem descendente
+        });
+        
+        console.log(`✅ ${lista.length} item(ns) de histórico encontrado(s)`);
+        return { 
+            success: true, 
+            data: lista,
+            message: "Histórico carregado com sucesso"
+        };
+    } catch (error) {
+        console.error(`❌ Erro ao listar histórico para solução ${idSolucao}:`, error);
+        return { 
+            success: false, 
+            error: error.message,
+            data: [],
+            code: error.code
+        };
+    }
+}
+
+async function salvarHistorico(idSolucao, historicoData) {
+    try {
+        console.log(`📝 Salvando histórico para solução ${idSolucao}`);
+        console.log("📤 Dados do histórico recebidos:", historicoData);
+        
+        const dadosCompletos = {
+            idSolucao: idSolucao,
+            autor: historicoData.autor || "Anônimo",
+            titulo: historicoData.titulo || "",
+            descricao: historicoData.descricao || historicoData.comentario || "",
+            dataRegistro: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        
+        const docRef = await db.collection("Historicos").add(dadosCompletos);
+        
+        console.log(`✅ Histórico salvo com sucesso! DocID: ${docRef.id}`);
+        console.log("📄 Dados salvos na coleção Historicos:", dadosCompletos);
+        
+        return { 
+            success: true, 
+            docId: docRef.id,
+            data: dadosCompletos,
+            message: "Histórico salvo com sucesso"
+        };
+    } catch (error) {
+        console.error(`❌ Erro ao salvar histórico para solução ${idSolucao}:`, error);
+        return { 
+            success: false, 
+            error: error.message,
+            code: error.code
+        };
+    }
+}
+
+async function excluirHistorico(docId) {
+    try {
+        console.log(`🗑️ Excluindo histórico ${docId}...`);
+        await db.collection("Historicos").doc(docId).delete();
+        
+        console.log("✅ Histórico excluído");
+        return { 
+            success: true, 
+            message: "Histórico excluído com sucesso" 
+        };
+    } catch (error) {
+        console.error(`❌ Erro ao excluir histórico ${docId}:`, error);
+        return { 
+            success: false, 
+            error: error.message,
+            code: error.code
+        };
+    }
+}
+
+// ============================================================================
+// 9. FUNÇÕES DE STATUS E UTILITÁRIOS
+// ============================================================================
+
 async function atualizarStatusSolucao(docId, novoStatus) {
     try {
         console.log(`🔄 Atualizando status da solução ${docId} para: ${novoStatus}`);
@@ -539,8 +657,121 @@ async function atualizarStatusSolucao(docId, novoStatus) {
     }
 }
 
+async function calcularMediaAvaliacoes(idSolucao) {
+    try {
+        console.log(`📊 Calculando média das avaliações para solução ${idSolucao}`);
+        
+        const resultado = await listarAvaliacoes(idSolucao);
+        
+        if (!resultado.success || !resultado.data) {
+            throw new Error(resultado.error || "Erro ao buscar avaliações");
+        }
+        
+        const avaliacoes = resultado.data;
+        let totalEstrelas = 0;
+        let totalAvaliacoes = 0;
+        
+        avaliacoes.forEach(avaliacao => {
+            totalEstrelas += avaliacao.estrelas || 0;
+            totalAvaliacoes++;
+        });
+        
+        const media = totalAvaliacoes > 0 ? totalEstrelas / totalAvaliacoes : 0;
+        
+        console.log(`✅ Média calculada: ${media.toFixed(1)} (${totalAvaliacoes} avaliações)`);
+        
+        return { 
+            success: true, 
+            media: media,
+            totalAvaliacoes: totalAvaliacoes,
+            totalEstrelas: totalEstrelas
+        };
+    } catch (error) {
+        console.error(`❌ Erro ao calcular média das avaliações para solução ${idSolucao}:`, error);
+        return { 
+            success: false, 
+            error: error.message,
+            code: error.code
+        };
+    }
+}
+
 // ============================================================================
-// 8. EXPORTAÇÃO GLOBAL
+// 10. FUNÇÕES DE DEBUG E VERIFICAÇÃO
+// ============================================================================
+
+async function verificarAvaliacoesNoFirebase(idSolucao) {
+    try {
+        console.log(`🔍 Verificando avaliações no Firebase para solução ${idSolucao}...`);
+        
+        const snapshot = await db.collection("Avaliacoes").get();
+        const avaliacoesDaSolucao = [];
+        
+        snapshot.forEach((doc) => {
+            const data = doc.data();
+            if (data.idSolucao === idSolucao) {
+                avaliacoesDaSolucao.push({
+                    docId: doc.id,
+                    ...data,
+                    dataRegistro: data.dataRegistro ? data.dataRegistro.toDate().toISOString() : ''
+                });
+            }
+        });
+        
+        console.log(`📊 Encontradas ${avaliacoesDaSolucao.length} avaliações para esta solução`);
+        console.log("📄 Detalhes:", avaliacoesDaSolucao);
+        
+        return {
+            success: true,
+            data: avaliacoesDaSolucao,
+            total: avaliacoesDaSolucao.length
+        };
+    } catch (error) {
+        console.error('❌ Erro ao verificar avaliações:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+async function verificarHistoricosNoFirebase(idSolucao) {
+    try {
+        console.log(`🔍 Verificando históricos no Firebase para solução ${idSolucao}...`);
+        
+        const snapshot = await db.collection("Historicos").get();
+        const historicosDaSolucao = [];
+        
+        snapshot.forEach((doc) => {
+            const data = doc.data();
+            if (data.idSolucao === idSolucao) {
+                historicosDaSolucao.push({
+                    docId: doc.id,
+                    ...data,
+                    dataRegistro: data.dataRegistro ? data.dataRegistro.toDate().toISOString() : ''
+                });
+            }
+        });
+        
+        console.log(`📊 Encontrados ${historicosDaSolucao.length} históricos para esta solução`);
+        console.log("📄 Detalhes:", historicosDaSolucao);
+        
+        return {
+            success: true,
+            data: historicosDaSolucao,
+            total: historicosDaSolucao.length
+        };
+    } catch (error) {
+        console.error('❌ Erro ao verificar históricos:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+// ============================================================================
+// 11. EXPORTAÇÃO GLOBAL
 // ============================================================================
 window.BancoDeDados = {
     // Referência do Firestore
@@ -554,11 +785,11 @@ window.BancoDeDados = {
     excluirSolucao,
     excluirSolucaoCompleta,
     
-    // Recursos (PROBLEMA 01)
+    // Recursos
     salvarRecursos,
     obterRecursos,
     
-    // Canvas (PROBLEMA 03)
+    // Canvas
     salvarCanvas,
     obterCanvas,
     
@@ -566,7 +797,19 @@ window.BancoDeDados = {
     listarAvaliacoes,
     salvarAvaliacao,
     excluirRelatorio,
+    
+    // Histórico
+    listarHistoricos,
+    salvarHistorico,
+    excluirHistorico,
+    
+    // Status e Utilitários
     atualizarStatusSolucao,
+    calcularMediaAvaliacoes,
+    
+    // Funções de Verificação (Debug)
+    verificarAvaliacoesNoFirebase,
+    verificarHistoricosNoFirebase,
     
     // Funções de compatibilidade (legado)
     salvarPontuacao: async function(idSolucao, k, mp, mn, s) { 
@@ -586,7 +829,7 @@ window.BancoDeDados = {
     debug: {
         listarColecoes: async function() {
             try {
-                const colecoes = ["ResumoSolucao", "RecursosSolucao", "CanvasSolucao", "Avaliacoes"];
+                const colecoes = ["ResumoSolucao", "RecursosSolucao", "CanvasSolucao", "Avaliacoes", "Historicos"];
                 const resultados = {};
                 
                 for (const colecao of colecoes) {
@@ -600,9 +843,91 @@ window.BancoDeDados = {
                 console.error("❌ Erro ao listar coleções:", error);
                 return { error: error.message };
             }
+        },
+        
+        listarDocumentos: async function(nomeColecao) {
+            try {
+                console.log(`🔍 Listando documentos da coleção: ${nomeColecao}`);
+                const snapshot = await db.collection(nomeColecao).limit(20).get();
+                
+                const documentos = [];
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    // Converter timestamps para strings
+                    Object.keys(data).forEach(key => {
+                        if (data[key] && data[key].toDate) {
+                            data[key] = data[key].toDate().toISOString();
+                        }
+                    });
+                    documentos.push({
+                        id: doc.id,
+                        ...data
+                    });
+                });
+                
+                console.log(`✅ ${documentos.length} documento(s) encontrado(s) em ${nomeColecao}`);
+                console.log("📄 Documentos:", documentos);
+                return documentos;
+            } catch (error) {
+                console.error(`❌ Erro ao listar documentos da coleção ${nomeColecao}:`, error);
+                return { error: error.message };
+            }
+        },
+        
+        limparColecao: async function(nomeColecao) {
+            try {
+                if (!confirm(`⚠️ TEM CERTEZA que deseja limpar TODOS os documentos da coleção "${nomeColecao}"? Esta ação é IRREVERSÍVEL!`)) {
+                    return { success: false, message: "Operação cancelada pelo usuário" };
+                }
+                
+                console.log(`🧹 Limpando coleção ${nomeColecao}...`);
+                const snapshot = await db.collection(nomeColecao).get();
+                
+                if (snapshot.empty) {
+                    console.log(`✅ Coleção ${nomeColecao} já está vazia`);
+                    return { success: true, message: "Coleção já está vazia" };
+                }
+                
+                const batch = db.batch();
+                let count = 0;
+                snapshot.docs.forEach((doc) => {
+                    batch.delete(doc.ref);
+                    count++;
+                });
+                
+                await batch.commit();
+                console.log(`✅ ${count} documento(s) removido(s) da coleção ${nomeColecao}`);
+                
+                return { 
+                    success: true, 
+                    message: `${count} documento(s) removido(s)`,
+                    count: count
+                };
+            } catch (error) {
+                console.error(`❌ Erro ao limpar coleção ${nomeColecao}:`, error);
+                return { 
+                    success: false, 
+                    error: error.message,
+                    code: error.code
+                };
+            }
+        },
+        
+        testarConexao: async function() {
+            try {
+                console.log("🔗 Testando conexão com Firebase...");
+                const testDoc = await db.collection("ResumoSolucao").limit(1).get();
+                console.log(`✅ Conexão OK. Coleção ResumoSolucao tem ${testDoc.size} documento(s)`);
+                return { success: true, message: "Conexão estabelecida com sucesso" };
+            } catch (error) {
+                console.error("❌ Erro na conexão com Firebase:", error);
+                return { success: false, error: error.message };
+            }
         }
     }
 };
 
 console.log("✅ Banco de Dados SASGP carregado com sucesso!");
-console.log("📊 Coleções disponíveis: ResumoSolucao, RecursosSolucao, CanvasSolucao, Avaliacoes");
+console.log("📊 Coleções disponíveis: ResumoSolucao, RecursosSolucao, CanvasSolucao, Avaliacoes, Historicos");
+console.log("🔗 Para debug, use: window.BancoDeDados.debug");
+console.log("🔍 Para verificar dados específicos, use: window.BancoDeDados.verificarAvaliacoesNoFirebase(id) ou verificarHistoricosNoFirebase(id)");
